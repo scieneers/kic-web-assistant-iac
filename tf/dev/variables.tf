@@ -22,7 +22,7 @@ variable "services" {
     "container.googleapis.com",
     "containerregistry.googleapis.com",
     "logging.googleapis.com",
-    "monitoring.googleapis.com", 
+    "monitoring.googleapis.com",
     "cloudkms.googleapis.com",
   ]
 }
