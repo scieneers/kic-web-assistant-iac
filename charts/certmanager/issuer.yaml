@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+ name: letsencrypt-issuer-qdrant
+ namespace: qdrant
+spec:
+ acme:
+   server: https://acme-v02.api.letsencrypt.org/directory
+   email: julian.werner@scieneers.de
+   privateKeySecretRef:
+     name: letsencrypt-qdrant-prod
+   solvers:
+   - http01:
+       ingress:
+         class:  nginx
