@@ -6,7 +6,9 @@ set -e
 
 helm repo add qdrant https://qdrant.github.io/qdrant-helm && \
 helm repo update && \
-helm install qdrant qdrant/qdrant \
+helm upgrade qdrant qdrant/qdrant \
     --namespace qdrant \
     --create-namespace \
+    --install \
+    -f ./values.yaml \
     --version ${VERSION}
