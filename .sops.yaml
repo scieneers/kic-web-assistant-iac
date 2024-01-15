@@ -1,0 +1,7 @@
+creation_rules:
+  - path_regex: qdrant/values\.yaml$  
+    encrypted_regex: apiKey
+    gcp_kms: projects/kic-chat-assistant/locations/europe-west3/keyRings/sops/cryptoKeys/sops
+
+  # default
+  - gcp_kms: projects/kic-chat-assistant/locations/europe-west3/keyRings/sops/cryptoKeys/sops
