@@ -24,5 +24,6 @@ variable "services" {
     "logging.googleapis.com",
     "monitoring.googleapis.com",
     "cloudkms.googleapis.com",
+    "compute.googleapis.com"
   ]
 }
