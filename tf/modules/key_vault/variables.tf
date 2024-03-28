@@ -6,11 +6,14 @@ variable "region" {
   type = string
 }
 
-variable "service_principal_id" {
+variable "key_vault_name" {
   type = string
 }
 
-variable "service_principal_secret" {
-  sensitive = true
+variable "key_names" {
+  type = list(string)
+}
+
+variable "service_principal_id" {
   type = string
 }
