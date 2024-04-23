@@ -1,0 +1,153 @@
+# Default values for kicwa-frontend.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: kicchatassistantacr.azurecr.io/kic-frontend
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "0.2.2"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8501
+
+ingress:
+  enabled: true
+  ingressClassName: "nginx"
+  annotations: {
+    cert-manager.io/cluster-issuer: letsencrypt-prod,
+    cert-manager.io/acme-challenge-type: http01,
+    nginx.ingress.kubernetes.io/use-regex: 'true',
+    nginx.ingress.kubernetes.io/affinity: "cookie",
+    nginx.ingress.kubernetes.io/session-cookie-name: "route",
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1",
+    nginx.ingress.kubernetes.io/session-cookie-expires: "172800",
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800",
+    nginx.ingress.kubernetes.io/rewrite-target: /,
+    nginx.ingress.kubernetes.io/proxy-body-size: "2000m",
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "32k",
+    nginx.ingress.kubernetes.io/ssl-redirect: "true",
+    nginx.ingress.kubernetes.io/auth-url: "https://kicwa.westeurope.cloudapp.azure.com/oauth2/auth",
+    nginx.ingress.kubernetes.io/auth-signin: "https://kicwa.westeurope.cloudapp.azure.com/oauth2/start?rd=https://kicwa.westeurope.cloudapp.azure.com/oauth2/callback",
+  }
+  # defaultBackend:
+  #   enabled: true
+  hosts:
+    - host: kicwa.westeurope.cloudapp.azure.com
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 80
+          targetPort: 8501
+
+  tls:
+    - secretName: tls-secret
+      hosts: 
+        - kicwa.westeurope.cloudapp.azure.com
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+      cpu: 800m
+      memory: 6Gi
+  requests:
+      cpu: 400m
+      memory: 4Gi
+
+# livenessProbe:
+#   httpGet:
+#     path: /
+#     port: http
+# readinessProbe:
+#   httpGet:
+#     path: /
+#     port: http
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+# volumes:
+# - name: secrets-kic-inline
+#   csi:
+#     driver: secrets-store.csi.k8s.io
+#     readOnly: true
+#     volumeAttributes:
+#       secretProviderClass: "azure-kvname"
+
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+# volumeMounts:
+# - name: secrets-kic-inline
+#   mountPath: "/mnt/secrets-store"
+#   readOnly: true
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# env:
+#   - name: OAUTH2_PROXY_CLIENT_ID
+#     valueFrom:
+#       secretKeyRef:
+#         name: client-id
+#         key: oauth2_proxy_client_id
+#   - name: OAUTH2_PROXY_CLIENT_SECRET
+#     valueFrom:
+#       secretKeyRef:
+#         name: client-secret
+#         key: oauth2_proxy_client_secret
+#   - name: OAUTH2_PROXY_COOKIE_SECRET
+#     valueFrom:
+#       secretKeyRef:
+#         name: cookie-secret
+#         key: oauth2_proxy_cookie_secret

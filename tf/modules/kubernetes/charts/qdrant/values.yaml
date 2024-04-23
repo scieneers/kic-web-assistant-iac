@@ -40,18 +40,18 @@ ingress:
     additionalLabels: {}
     annotations:
         kubernetes.io/ingress.class: nginx
-        cert-manager.io/issuer: letsencrypt-issuer-qdrant
-        acme.cert-manager.io/http01-edit-in-place: "true"
+        # cert-manager.io/issuer: letsencrypt-issuer-qdrant
+        # acme.cert-manager.io/http01-edit-in-place: "true"
     hosts:
-        - host: dev.kic.vectordb.wuseligerwaschbaer.com
+        - host: kicwa-vdb.westeurope.cloudapp.azure.com
           paths:
             - path: /
               pathType: Prefix
               servicePort: 6333
-    tls:
-        - hosts:
-            - dev.kic.vectordb.wuseligerwaschbaer.com
-          secretName: qdrant-tls
+              # tls:
+              #     - hosts:
+              #         - dev.kic.vectordb.wuseligerwaschbaer.com
+              #       secretName: qdrant-tls
 livenessProbe:
     enabled: false
     initialDelaySeconds: 5
@@ -166,24 +166,26 @@ podDisruptionBudget:
 # false: no api key will be configured
 # true: an api key will be auto-generated
 # string: the given string will be set as an apikey
-apiKey: ENC[AES256_GCM,data:eSnlZnIRyPps0DFSA7/zX+F0rcTHn5LBxZC8f0mNO/+LUYwEBYOfOgyihTh6stv7wd0UoFbKIJzCJjqwGPn8CQ==,iv:0aoDS6X8n8SvjJdOWH9mjuy2Ogifw+Pta5vEqEzpO4A=,tag:kUOg7QIquPG/rJXCYCVnfw==,type:str]
+apiKey: ENC[AES256_GCM,data:eBAQrEcXuuH07vsxg7xCMxqNIgY7Az/PWarP8IK+c9Y/paKX1DCMBGdsEvps87ZwSKSbq95Za1vDVkB7ycyw7Q==,iv:xmZQ6sPglJ4IfInzrE94axB5Z3VoWG1cji6To8d/SE0=,tag:1U5Cda5KtJgq4TPQUojg9w==,type:str]
 additionalVolumes: []
 # - name: volumeName
 #   emptyDir: {}
 additionalVolumeMounts: []
 # - name: volumeName
-#   mountPath: "/mount/path"
+# mountPath: "/mount/path"
 sops:
     kms: []
-    gcp_kms:
-        - resource_id: projects/kic-chat-assistant/locations/europe-west3/keyRings/sops/cryptoKeys/sops
-          created_at: "2023-12-20T13:20:30Z"
-          enc: CiQADCQbkA9lNJKFUGkBOmrKVYu2+DCtYOb8rbjTXHkL8kCI+LUSSQC8M0igh4DVtMlb+ulen2NSGZ5EcyfZpfmy2gbs31BU/x4crA9rOdfobYDdZs6wyU610FXnaXG7xMYtevgD8ry05Jqt3Hx01yQ=
-    azure_kv: []
+    gcp_kms: []
+    azure_kv:
+        - vault_url: https://kic-kv.vault.azure.net
+          name: sops-key
+          version: a0eb406f75884148a645463a5d6d4b7c
+          created_at: "2024-04-11T13:13:21Z"
+          enc: BEMP9Zc2wJrnFHqDji9ZRD9BQ2vyWZX8rriZUEYNhn1q7pSmPrNIKOahGbbriVHu0pGUO4LUm8iVFyhxyuoX2MLrdE7tLiQDD38tGAqDsj_GLg5kUU1FAbLlLZCArrsuGjwjkn-0Xqt5hgsChEBOlkYHlwFYz_0bGZKouRp9GSmqxud4XANVppkKmnVKeA2BZFd6j5o4fFbHA5z1xDOmafKZLVpNRwW_nhbMi7F3J18OQiPb_SxxIuQepy1qwqjKxuJcVx05IV7ksNfQE5gdf3-wHj8VslRb7hk39iwhR37a1zkMcVr6zUm4WNhg5WaGm9YFccWA-hzA56G7__f_6g
     hc_vault: []
     age: []
-    lastmodified: "2023-12-20T13:20:31Z"
-    mac: ENC[AES256_GCM,data:IywYPy714vQbFS70wGDIrD/pUreUFWuKuKbLKxM9+lzsCmKF9vkRgvYE/9l5/9K5h2yVg/EqQgzzewE3ESTpBWW0vN+F6Tj4y1NROV+FGgWoCkQzic5wZa/vKVkX/5bKtXlVq+HW9g7ZyeHYGl4eE8FztJYO1hCg579JwbCIKo4=,iv:lhTCpBFQP3TYYo1KRm4/OhjP2MONthXnH+Zl+IcWZkE=,tag:WZ16NpCQwdyuxBVGBCNldg==,type:str]
+    lastmodified: "2024-04-11T13:13:23Z"
+    mac: ENC[AES256_GCM,data:rNunKegN62DJsjEVauDt/eajUeSebsVwhPh24lxszTgeCWV4eBMF88U5dr7T0jVUCpq5FCBxTKMled+SNH3scU0wLEHK4K8aU3Se15crSL3rzJBqIn8Lc0dSoA4KVHCgFQkWJXYl0ydSv9JAfH3mHfvoyi9nUJFsTwPyXIDJc+U=,iv:zKDO4SIgNLalmM5x/stveef1Hhyjt756DUWuXqQITKE=,tag:gH1DCkOOq/v4rmAHGbwSxw==,type:str]
     pgp: []
     encrypted_regex: apiKey
-    version: 3.8.0
+    version: 3.8.1

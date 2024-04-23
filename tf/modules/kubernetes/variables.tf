@@ -6,11 +6,10 @@ variable "region" {
   type = string
 }
 
-variable "service_principal_id" {
+variable "uai_id" {
   type = string
 }
 
-variable "service_principal_secret" {
-  sensitive = true
+variable "acr_id" {
   type = string
 }

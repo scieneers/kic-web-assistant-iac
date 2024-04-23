@@ -12,14 +12,107 @@ resource "azurerm_key_vault" "kv" {
 
   access_policy {
         tenant_id = data.azurerm_client_config.current.tenant_id
-        object_id = var.service_principal_id
-        key_permissions = ["Create", "Get", "List", "Update", "Backup", "Restore", "Purge", "Recover", "Delete", "GetRotationPolicy", "SetRotationPolicy"]
+        object_id = var.uai_principal_id
+        key_permissions = [
+          "Get",
+          "List",
+          "Update",
+          "Create",
+          "Import",
+          "Delete",
+          "Recover",
+          "Backup",
+          "Restore",
+          "GetRotationPolicy",
+          "SetRotationPolicy",
+          "Rotate",
+        ]
+
+        secret_permissions = [
+          "Get",
+          "List",
+          "Set",
+          "Delete",
+          "Recover",
+          "Backup",
+          "Restore",
+        ]
+
     }
   access_policy {
         tenant_id = data.azurerm_client_config.current.tenant_id
         object_id = data.azurerm_client_config.current.object_id
-        key_permissions = ["Create", "Get", "List", "Update", "Backup", "Restore", "Purge", "Recover", "Delete", "GetRotationPolicy", "SetRotationPolicy"]
-    }
+
+        key_permissions = [
+          "Get",
+          "List",
+          "Update",
+          "Create",
+          "Import",
+          "Delete",
+          "Recover",
+          "Backup",
+          "Restore",
+          "GetRotationPolicy",
+          "SetRotationPolicy",
+          "Rotate",
+        ]
+
+        secret_permissions = [
+          "Get",
+          "List",
+          "Set",
+          "Delete",
+          "Recover",
+          "Backup",
+          "Restore",
+        ]
+  }
+
+    access_policy {
+        tenant_id = data.azurerm_client_config.current.tenant_id
+        object_id = var.k8s_agentpool_mi
+
+        secret_permissions = [
+          "Get",
+          "List",
+        ]
+  }
+}
+
+resource "azurerm_key_vault_secret" "oauth2-cookie-secret" {
+  name         = "oauth2-cookie-secret"
+  value        = "ceb00cc4b2d9acc67980cc6e7f6de928"
+  key_vault_id = azurerm_key_vault.kv.id
+
+  ### Explicit dependency
+  depends_on = [
+    azurerm_key_vault.kv
+  ]
+}
+
+
+resource "azurerm_key_vault_secret" "oauth2-proxy-client-id" {
+  name         = "oauth2-proxy-client-id"
+  value        = "d6c1c517-6b89-4c71-a4b5-bd7108e2476e"
+  key_vault_id = azurerm_key_vault.kv.id
+
+  ### Explicit dependency
+  depends_on = [
+    azurerm_key_vault.kv
+  ]
+}
+
+
+resource "azurerm_key_vault_secret" "oauth2-proxy-client-secret" {
+  name         = "oauth2-proxy-client-secret"
+  value        = "Yh_8Q~Yfp9rUaNqGJwjXIgHXzdLsiWebkkYwmcqO"
+  key_vault_id = azurerm_key_vault.kv.id
+
+  ### Explicit dependency
+  depends_on = [
+    azurerm_key_vault.kv
+  ]
 }
 
 

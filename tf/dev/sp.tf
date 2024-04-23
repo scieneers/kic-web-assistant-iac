@@ -6,17 +6,14 @@ resource "azuread_application" "kicapp" {
   owners       = [data.azurerm_client_config.current.object_id]
 }
 
-resource "azuread_service_principal" "kic_k8s_service_principal" {
-  client_id = azuread_application.kicapp.client_id
-  owners    = [data.azurerm_client_config.current.object_id]
-}
-
-resource "azuread_service_principal_password" "kic_k8s_service_principal_pw" {
-  service_principal_id = azuread_service_principal.kic_k8s_service_principal.object_id
+resource "azurerm_user_assigned_identity" "uai" {
+  name                = "kic-uai"
+  resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
+  location            = azurerm_resource_group.kic_web_assistant_rg.location
 }
 
 resource "azurerm_role_assignment" "aks_sp_acr" {
   scope                = azurerm_container_registry.kic_assistant.id
   role_definition_name = "AcrPull"
-  principal_id         = azuread_service_principal.kic_k8s_service_principal.object_id
+  principal_id         = azurerm_user_assigned_identity.uai.principal_id
 }

@@ -14,6 +14,10 @@ variable "key_names" {
   type = list(string)
 }
 
-variable "service_principal_id" {
+variable "uai_principal_id" {
   type = string
+}
+
+variable "k8s_agentpool_mi" {
+  type = string  
 }

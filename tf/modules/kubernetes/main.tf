@@ -5,30 +5,35 @@ resource "azurerm_kubernetes_cluster" "kic_k8s_cluster" {
   location            = var.region
   resource_group_name = var.resource_group
   dns_prefix          = "${var.resource_group}-k8s"
-
+  
   default_node_pool {
     name       = "default"
-    node_count = 1
-    vm_size    = "Standard_DS2_v2"
+    vm_size    = "Standard_DS3_v2"
+    upgrade_settings {
+      max_surge = "10%"
+    }
+    min_count             = 1
+    max_count             = 3
+    node_count            = 1
+    os_disk_size_gb       = 30
+    enable_auto_scaling   = true
+    temporary_name_for_rotation = "temppool"
+
   }
 
-  service_principal {
-    client_id     = var.service_principal_id
-    client_secret = var.service_principal_secret
-  }
-
+  identity {
+    identity_ids = [var.uai_id]
+    type = "UserAssigned"
 }
 
-resource "azurerm_kubernetes_cluster_node_pool" "kic_k8s_preemptible_nodepool" {
-  name                  = "kicnodepool"
-  kubernetes_cluster_id = azurerm_kubernetes_cluster.kic_k8s_cluster.id
-  vm_size               = "Standard_DS2_v2"
-  enable_auto_scaling   = true
-  min_count             = 1
-  max_count             = 3
-  node_count            = 1
-  node_labels           = {
-    "preemptible" = "true"
+  key_vault_secrets_provider {
+   # update the secrets on a regular basis
+   secret_rotation_enabled = true
   }
-  os_disk_size_gb       = 30
+}
+
+resource "azurerm_role_assignment" "aks_k8s_mi" {
+  scope                = var.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_kubernetes_cluster.kic_k8s_cluster.kubelet_identity[0].object_id
 }

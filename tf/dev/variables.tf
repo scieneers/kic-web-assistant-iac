@@ -9,6 +9,6 @@ variable "region" {
 }
 
 variable "key_vault_name" {
-  default = "kic-kv"
+  default = "kicwa-kv"
   type    = string
 }
