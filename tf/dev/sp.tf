@@ -1,13 +1,10 @@
-data "azurerm_client_config" "current" {}
-
-
-resource "azuread_application" "kicapp" {
-  display_name = "KI Campus App"
-  owners       = [data.azurerm_client_config.current.object_id]
-}
+# resource "azuread_application" "kicapp" {
+#   display_name = "KI Campus App - ${local.environment}"
+#   owners       = [data.azurerm_client_config.current.object_id]
+# }
 
 resource "azurerm_user_assigned_identity" "uai" {
-  name                = "kic-uai"
+  name                = "${var.resource_prefix}-uai-${local.environment}"
   resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
   location            = azurerm_resource_group.kic_web_assistant_rg.location
 }

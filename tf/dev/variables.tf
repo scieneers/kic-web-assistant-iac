@@ -1,14 +1,15 @@
+variable "resource_prefix" {
+  description = "provide a 2-13 character prefix for all resources."
+  type        = string
+  default     = "kicwa"
+}
+
 variable "resource_group" {
-  default = "kic-chat-assistant"
+  default = "kic-chat-assistant" # TODO Change to kic-chat-assistant_${local.environment}
   type    = string
 }
 
 variable "region" {
-  default = "westeurope"
-  type    = string
-}
-
-variable "key_vault_name" {
-  default = "kicwa-kv"
+  default = "germanywestcentral"
   type    = string
 }
