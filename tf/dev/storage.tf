@@ -1,10 +1,10 @@
 resource "azurerm_resource_group" "kic_web_assistant_rg" {
-  name     = var.resource_group
-  location = var.region
+  name     = local.resource_group
+  location = local.region
 }
 
 resource "azurerm_storage_account" "kic_wa_sa" {
-  name                     = "${var.resource_prefix}sa${local.environment}"
+  name                     = "${local.resource_prefix}sta${local.environment}"
   resource_group_name      = azurerm_resource_group.kic_web_assistant_rg.name
   location                 = azurerm_resource_group.kic_web_assistant_rg.location
   account_tier             = "Standard"

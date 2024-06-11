@@ -1,14 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    meta.helm.sh/release-name: kicwa # can be removed if your application isn't deployed through Helm
-    meta.helm.sh/release-namespace: kicwa # can be removed if your application isn't deployed through Helm
   labels:
     application: kicwa-oauth2-proxy
-    app.kubernetes.io/managed-by: Helm # can be removed if your application isn't deployed through Helm
   name: kicwa-oauth2-proxy-deployment
   namespace: kicwa
+
+
 spec:
   replicas: 1
   selector:
@@ -22,28 +20,37 @@ spec:
       containers:
       - args:
         - --provider=oidc
-        - --azure-tenant=201452c3-8938-4d5f-89f2-0f1098708589 # Microsoft Entra ID OAuth2 Proxy application Tenant ID
+        - --azure-tenant="201452c3-8938-4d5f-89f2-0f1098708589"
         - --pass-access-token=true
-        - --cookie-name=_proxycookie # this can be any name of your choice which you would like OAuth2 Proxy to use for the session cookie
-        - --email-domain=*
-        - --upstream=file:///dev/null
+        - --cookie-name=_proxycookie 
+        - --upstream=https://kicwa.westeurope.cloudapp.azure.com/oauth2/callback
+        - --cookie-csrf-per-request=true
+        - --cookie-csrf-expire=5m           # Avoid unauthorized csrf cookie errors.
+        - --email-domain=*                  # Email domains allowed to use the proxy
         - --http-address=0.0.0.0:4180
         - --oidc-issuer-url=https://login.microsoftonline.com/201452c3-8938-4d5f-89f2-0f1098708589/v2.0
+        - --user-id-claim=oid
+
+
         name: kicwa-oauth2-proxy
-        image: quay.io/oauth2-proxy/oauth2-proxy:v7.3.0
+        image: quay.io/oauth2-proxy/oauth2-proxy:v7.4.0
         imagePullPolicy: Always
+        volumeMounts:
+        - name: secrets-store01-inline
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
         env:
-        - name: OAUTH2_PROXY_CLIENT_ID # keep this name - it's required to be defined like this by OAuth2 Proxy
+        - name: OAUTH2_PROXY_CLIENT_ID # keep this name - it\'s required to be defined like this by OAuth2 Proxy
           valueFrom:
             secretKeyRef:
               name: client-id
               key: oauth2_proxy_client_id
-        - name: OAUTH2_PROXY_CLIENT_SECRET # keep this name - it's required to be defined like this by OAuth2 Proxy
+        - name: OAUTH2_PROXY_CLIENT_SECRET # keep this name - it\'s required to be defined like this by OAuth2 Proxy
           valueFrom:
             secretKeyRef:
               name: client-secret
               key: oauth2_proxy_client_secret
-        - name: OAUTH2_PROXY_COOKIE_SECRET # keep this name - it's required to be defined like this by OAuth2 Proxy
+        - name: OAUTH2_PROXY_COOKIE_SECRET # keep this name - it\'s required to be defined like this by OAuth2 Proxy
           valueFrom:
             secretKeyRef:
               name: cookie-secret
@@ -58,16 +65,20 @@ spec:
           requests:
             cpu: 100m
             memory: 128Mi
+            
+      volumes:
+        - name: secrets-store01-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "azure-kvname"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    meta.helm.sh/release-name: kicwa # can be removed if your application isn't deployed through Helm
-    meta.helm.sh/release-namespace: kicwa # can be removed if your application isn't deployed through Helm
   labels:
     application: kicwa-oauth2-proxy
-    app.kubernetes.io/managed-by: Helm # can be removed if your application isn't deployed through Helm
   name: kicwa-oauth2-proxy-svc
   namespace: kicwa
 spec:
@@ -84,24 +95,14 @@ kind: Ingress
 metadata:
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/proxy-body-size: "2000m"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "32k"
-    meta.helm.sh/release-name: kicwa # can be removed if your application isn't deployed through Helm
-    meta.helm.sh/release-namespace: kicwa # can be removed if your application isn't deployed through Helm
-  labels:
-    app.kubernetes.io/managed-by: Helm # can be removed if your application isn't deployed through Helm
   name: kicwa-oauth2-proxy-ingress
   namespace: kicwa
 spec:
   ingressClassName: nginx
-  tls:
-    - hosts:
-        - kicwa.westeurope.cloudapp.azure.com
-      secretName: kicwa-oauth2-proxy-ingress-tls-secret
   rules:
-    - host: kicwa.westeurope.cloudapp.azure.com
-      http:
+     - http:
         paths:
           - path: /oauth2
             pathType: Prefix
@@ -109,4 +110,4 @@ spec:
               service:
                 name: kicwa-oauth2-proxy-svc
                 port:
-                  number: 4180
+                  number: 4180      

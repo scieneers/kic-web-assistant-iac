@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: kicchatassistantacr.azurecr.io/kic-frontend
+  repository: kicwaacrdev.azurecr.io/kic-frontend
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "0.2.2"
@@ -60,13 +60,13 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-body-size: "2000m",
     nginx.ingress.kubernetes.io/proxy-buffer-size: "32k",
     nginx.ingress.kubernetes.io/ssl-redirect: "true",
-    nginx.ingress.kubernetes.io/auth-url: "https://kicwa.westeurope.cloudapp.azure.com/oauth2/auth",
-    nginx.ingress.kubernetes.io/auth-signin: "https://kicwa.westeurope.cloudapp.azure.com/oauth2/start?rd=https://kicwa.westeurope.cloudapp.azure.com/oauth2/callback",
+    nginx.ingress.kubernetes.io/auth-url: "https://kicwa.germanywestcentral.cloudapp.azure.com/oauth2/auth",
+    nginx.ingress.kubernetes.io/auth-signin: "https://kicwa.germanywestcentral.cloudapp.azure.com/oauth2/start?rd=https://kicwa.germanywestcentral.cloudapp.azure.com/oauth2/callback",
   }
   # defaultBackend:
   #   enabled: true
   hosts:
-    - host: kicwa.westeurope.cloudapp.azure.com
+    - host: kicwa.germanywestcentral.cloudapp.azure.com
       paths:
         - path: /
           pathType: Prefix
@@ -76,7 +76,7 @@ ingress:
   tls:
     - secretName: tls-secret
       hosts: 
-        - kicwa.westeurope.cloudapp.azure.com
+        - kicwa.germanywestcentral.cloudapp.azure.com
 
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious

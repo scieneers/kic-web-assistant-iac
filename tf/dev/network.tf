@@ -1,17 +1,10 @@
 resource "azurerm_public_ip" "kicwa-pip" {
-  name                = "${var.resource_prefix}-pip-${local.environment}"
-  resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
+  name                = "${local.resource_prefix}-pip-${local.environment}"
+  resource_group_name = local.resource_group_nodes
   location            = azurerm_resource_group.kic_web_assistant_rg.location
   allocation_method   = "Static"
-}
+  domain_name_label   = "${local.resource_prefix}"
+  sku                 = "Standard"
 
-resource "azurerm_lb" "kicwa-lb" {
-  name                = "${var.resource_prefix}-lb-${local.environment}"
-  resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
-  location            = azurerm_resource_group.kic_web_assistant_rg.location
-
-  frontend_ip_configuration {
-    name                 = "${var.resource_prefix}-pip-${local.environment}"
-    public_ip_address_id = azurerm_public_ip.kicwa-pip.id
-  }
+  depends_on = [ azurerm_kubernetes_cluster.kic_k8s_cluster ]
 }

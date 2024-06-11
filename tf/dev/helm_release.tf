@@ -18,10 +18,21 @@ provider "helm" {
   }
 }
 
+provider "kubectl" {
+  host                   = azurerm_kubernetes_cluster.kic_k8s_cluster.kube_config.0.host
+  username               = azurerm_kubernetes_cluster.kic_k8s_cluster.kube_config.0.username
+  password               = azurerm_kubernetes_cluster.kic_k8s_cluster.kube_config.0.password
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.kic_k8s_cluster.kube_config.0.client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.kic_k8s_cluster.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.kic_k8s_cluster.kube_config.0.cluster_ca_certificate)
+  load_config_file       = false
+}
+
+
 locals {
-    namespace                 = "${var.resource_prefix}"
+    namespace                 = "${local.resource_prefix}"
     ingressClass              = "nginx"
-    hostname                  = "${var.resource_prefix}-${local.environment}"
+    hostname                  = "${local.resource_prefix}-${local.environment}"
     ssl_cert_owner_email      = "sebastian.drewke@scieneers.de"
 }
 
@@ -50,19 +61,6 @@ resource "helm_release" "qdrant" {
   depends_on = [kubernetes_namespace.ns]
 }
 
-# resource "helm_release" "kicwa-frontend" {
-#   name        = "${var.resource_prefix}-frontend"
-#   chart       = "charts/kicwa-frontend"
-#   namespace   = "${local.namespace}"
-#   create_namespace = true
-#   wait             = true
-
-#   values = [
-#     file("charts/kicwa-frontend/values.yaml")
-#   ]
-
-#   depends_on = [kubernetes_namespace.ns]
-# }
 
 resource "helm_release" "ingress-nginx" {
   name        = "ingress-nginx"
@@ -98,15 +96,35 @@ resource "helm_release" "ingress-nginx" {
     value = "${local.hostname}"
   }
 
-    set {
+  set {
     name  = "controller.service.loadBalancerIP"
     value = "${azurerm_public_ip.kicwa-pip.ip_address}"
+  }
+
+  set {
+    name  = "service.beta.kubernetes.io/azure-load-balancer-resource-group"
+    value = "${azurerm_kubernetes_cluster.kic_k8s_cluster.node_resource_group}"
   }
 
   depends_on = [
     kubernetes_namespace.ns
   ]
 }
+
+
+# resource "helm_release" "kicwa-frontend" {
+#   name        = "${local.resource_prefix}-frontend"
+#   chart       = "charts/kicwa-frontend"
+#   namespace   = "${local.namespace}"
+#   create_namespace = true
+#   wait             = true
+
+#   values = [
+#     file("charts/kicwa-frontend/values.yaml")
+#   ]
+
+#   depends_on = [helm_release.ingress-nginx]
+# }
 
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
