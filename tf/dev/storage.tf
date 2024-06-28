@@ -16,3 +16,9 @@ resource "azurerm_storage_container" "sc" {
   storage_account_name  = azurerm_storage_account.kic_wa_sa.name
   container_access_type = "private"
 }
+
+resource "azurerm_storage_share" "share" {
+  name                  = "qdrantshare"
+  storage_account_name  = azurerm_storage_account.kic_wa_sa.name
+  quota                 = 102400
+}

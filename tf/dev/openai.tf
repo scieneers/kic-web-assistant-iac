@@ -20,20 +20,57 @@ resource "azurerm_cognitive_account" "openai" {
   }
 }
 
-resource "azurerm_cognitive_deployment" "gpt-35" {
-  name                 = "gpt-35"
+resource "azurerm_cognitive_deployment" "gpt-4o" {
+  name                 = "gpt-4o"
   cognitive_account_id = azurerm_cognitive_account.openai.id
   rai_policy_name      = "Microsoft.Default"
 
   model {
-    name    = "gpt-35-turbo"
+    name    = "gpt-4o"
+    version = "2024-05-13"
+    format  = "OpenAI"
+  }
+
+  scale {
+    capacity = 150
+    type     = "Standard"
+
+  }
+}
+
+resource "azurerm_cognitive_deployment" "gpt-4" {
+  name                 = "gpt-4"
+  cognitive_account_id = azurerm_cognitive_account.openai.id
+  rai_policy_name      = "Microsoft.Default"
+
+  model {
+    name    = "gpt-4"
     version = "0613"
     format  = "OpenAI"
   }
 
   scale {
-    capacity = local.environment == "prod" ? 120 : 40
+    capacity = 40
     type     = "Standard"
+
+  }
+}
+
+resource "azurerm_cognitive_deployment" "ada-embedding" {
+  name                 = "text-embedding-ada-002"
+  cognitive_account_id = azurerm_cognitive_account.openai.id
+  rai_policy_name      = "Microsoft.Default"
+
+  model {
+    name    = "text-embedding-ada-002"
+    version = "2"
+    format  = "OpenAI"
+  }
+
+  scale {
+    capacity = 150
+    type     = "Standard"
+
   }
 }
 
@@ -114,19 +151,19 @@ module "mistral_large" {
 }
 
 #########################################
-# Model: Meta-Llama-3-8B-Instruct
+# Model: Meta-Llama-2-7B
 #########################################
-module "Meta-Llama-3-8B-Instruct" {
-  source = "./modules/ai_model_serverless"
-  environment_name = local.environment
-  location         = local.llama_region
-  resource_group_id = azurerm_resource_group.kic_web_assistant_rg.id
-  project_id        = module.llama_ai_project.id
-  model = {
-    id = "azureml://registries/azureml-meta/models/Meta-Llama-3-8B-Instruct"
-    name = "Meta-Llama-3-8B-Instruct"
-    marketplace_publisher_id = "metagenai"
-    marketplace_offer_id = "Meta-Llama-3-8B-Instruct-offer"
-    marketplace_plan_id  = "Meta-Llama-3-8B-Instruct-plan"
-  }
-}
+#module "Meta-Llama-2-7B" {
+#  source = "./modules/ai_model_serverless"
+# environment_name = local.environment
+# location         = local.llama_region
+# resource_group_id = azurerm_resource_group.kic_web_assistant_rg.id
+#  project_id        = module.llama_ai_project.id
+#  model = {
+#    id = "azureml://registries/azureml-meta/models/Llama-2-7b-chat"
+#    name = "Meta-Llama-2-7B-chat"
+#    marketplace_publisher_id = "metagenai"
+#    marketplace_offer_id = "meta-llama-2-7b-chat-offer"
+#    marketplace_plan_id  = "meta-llama-2-7b-chat-plan"
+#  }
+#}
