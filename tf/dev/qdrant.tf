@@ -1,41 +1,46 @@
-resource "azurerm_container_group" "qdrant_container_group" {
-  name                = "qdrant-aci"
-  location            = azurerm_resource_group.kic_web_assistant_rg.location
-  resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
-  ip_address_type     = "Public"
-  os_type             = "Linux"
+resource "azurerm_container_app_environment" "qdrant-env" {
+  name                       = "qdrant-environment"
+  location                   = azurerm_resource_group.kic_web_assistant_rg.location
+  resource_group_name        = azurerm_resource_group.kic_web_assistant_rg.name
+ }
 
-  container {
-    name   = "qdrant-container"
-    image  = "qdrant/qdrant:master"
-    cpu    = "4"
-    memory = "1"
+resource "azurerm_container_app" "qdrant" {
+  name                         = "qdrant-app"
+  container_app_environment_id = azurerm_container_app_environment.qdrant-env.id
+  resource_group_name          = azurerm_resource_group.kic_web_assistant_rg.name
+  revision_mode                = "Single"
 
-    ports {
-      port     = 6333
-      protocol = "TCP"
+  template {
+    container {
+      name   = "qdrant"
+      image  = "kicwaacrdev.azurecr.io/qdrant/qdrant:v1.10.1"
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      env {
+            name = "QDRANT__SERVICE__API_KEY"
+            value = data.sops_file.secrets.data["qdrant_api_key"]
+        }
     }
-
-    ports {
-      port     = 6334
-      protocol = "TCP"
-    }
-
-
-    secure_environment_variables = {
-      QDRANT__SERVICE__API_KEY = data.sops_file.secrets.data["qdrant_api_key"]
-    }
-
-    volume {
-      name = "qdrant-volume"
-      storage_account_name = azurerm_storage_account.kic_wa_sa.name
-      storage_account_key = azurerm_storage_account.kic_wa_sa.primary_access_key
-      share_name = azurerm_storage_share.share.name
-      mount_path = "/qdrant/storage"
 
   }
-
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.uai.id]
   }
 
+  registry {
+    server   = azurerm_container_registry.kic_assistant.login_server
+    identity = azurerm_user_assigned_identity.uai.id
+  }
 
+  ingress {
+    external_enabled = true
+    target_port = 6333
+    transport        = "auto"
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
 }

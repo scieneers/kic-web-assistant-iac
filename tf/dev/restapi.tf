@@ -14,7 +14,7 @@ resource "azurerm_linux_web_app" "restapi" {
 
   site_config {
     application_stack {
-      docker_image_name   = "rest-api:latest"
+      docker_image_name   = "rest-api:v1"
       docker_registry_url = "https://${azurerm_container_registry.kic_assistant.login_server}"
     }
     container_registry_use_managed_identity = true
