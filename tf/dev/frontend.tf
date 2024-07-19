@@ -1,3 +1,9 @@
+
+data "azurerm_key_vault_secret" "qdrant-fqdn" {
+  name         = "qdrant-fqdn"
+  key_vault_id = azurerm_key_vault.kv.id
+}
+
 resource "azurerm_service_plan" "streamlit_service_plan" {
   name                = "${local.resource_prefix}asp${local.environment}"
   resource_group_name      = azurerm_resource_group.kic_web_assistant_rg.name
@@ -12,9 +18,13 @@ resource "azurerm_linux_web_app" "streamlit_frontend" {
   location            = azurerm_resource_group.kic_web_assistant_rg.location
   service_plan_id     = azurerm_service_plan.streamlit_service_plan.id
 
+  app_settings = {
+    QDRANT_URL = "${data.azurerm_key_vault_secret.qdrant-fqdn.value}"
+  }
+
   site_config {
     application_stack {
-      docker_image_name   = "app:latest"
+      docker_image_name   = "freddy/kic-frontend:0.2.1"
       docker_registry_url = "https://${azurerm_container_registry.kic_assistant.login_server}"
     }
     container_registry_use_managed_identity = true

@@ -29,7 +29,7 @@ resource "azurerm_container_app" "qdrant" {
 
       env {
             name = "QDRANT__SERVICE__API_KEY"
-            value = data.sops_file.secrets.data["qdrant_api_key"]
+            value = data.sops_file.secrets.data["QDRANT_API_KEY"]
         }
 
       volume_mounts {
@@ -65,4 +65,10 @@ resource "azurerm_container_app" "qdrant" {
       latest_revision = true
     }
   }
+}
+
+resource "azurerm_key_vault_secret" "qdrant-fqdn" {
+  name         = "qdrant-fqdn"
+  value        = azurerm_container_app.qdrant.ingress[0].fqdn
+  key_vault_id = azurerm_key_vault.kv.id
 }
