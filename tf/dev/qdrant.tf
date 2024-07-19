@@ -4,6 +4,16 @@ resource "azurerm_container_app_environment" "qdrant-env" {
   resource_group_name        = azurerm_resource_group.kic_web_assistant_rg.name
  }
 
+resource "azurerm_container_app_environment_storage" "qdrant-storage" {
+
+  name                         = "qdrant-storage"
+  container_app_environment_id = azurerm_container_app_environment.qdrant-env.id
+  account_name                 = azurerm_storage_account.kic_wa_sa.name
+  share_name                   = azurerm_storage_share.share.name
+  access_key                   = azurerm_storage_account.kic_wa_sa.primary_access_key
+  access_mode                  = "ReadWrite"
+}
+
 resource "azurerm_container_app" "qdrant" {
   name                         = "qdrant-app"
   container_app_environment_id = azurerm_container_app_environment.qdrant-env.id
@@ -21,7 +31,19 @@ resource "azurerm_container_app" "qdrant" {
             name = "QDRANT__SERVICE__API_KEY"
             value = data.sops_file.secrets.data["qdrant_api_key"]
         }
+
+      volume_mounts {
+        name = "qdrant-data"
+        path = "/qdrant/storage"
+      }
     }
+
+    volume {
+      name = "qdrant-data"
+      storage_name = azurerm_container_app_environment_storage.qdrant-storage.name
+      storage_type = "AzureFile"
+    }
+
 
   }
   identity {
