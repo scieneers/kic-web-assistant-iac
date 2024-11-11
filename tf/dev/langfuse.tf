@@ -86,6 +86,7 @@ resource "azurerm_linux_web_app" "langfuse" {
     AUTH_AZURE_AD_CLIENT_SECRET       = data.sops_file.secrets.data["AD_APP_SECRET_LANGFUSE"]
     AUTH_AZURE_AD_TENANT_ID           = data.azurerm_client_config.current.tenant_id
     AUTH_DISABLE_USERNAME_PASSWORD    = true
+    AUTH_AZURE_ALLOW_ACCOUNT_LINKING  = true
     # the following two  values are currenlty ignored by langfuse,
     PORT = 80
   }

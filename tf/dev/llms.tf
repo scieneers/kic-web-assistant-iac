@@ -89,6 +89,24 @@ resource "azurerm_cognitive_deployment" "ada-embedding" {
   }
 }
 
+resource "azurerm_cognitive_deployment" "three-large-embedding" {
+  name                 = "text-embedding-3-large"
+  cognitive_account_id = azurerm_cognitive_account.openai.id
+  rai_policy_name      = "Microsoft.Default"
+
+  model {
+    name    = "text-embedding-3-large"
+    version = "1"
+    format  = "OpenAI"
+  }
+
+  scale {
+    capacity = 150
+    type     = "Standard"
+
+  }
+}
+
 #########################################
 # Application Insights
 #########################################
