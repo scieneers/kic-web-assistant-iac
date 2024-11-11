@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    application: kicwa-oauth2-proxy
+  name: kicwa-oauth2-proxy-deployment
+  namespace: kicwa
+
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      application: kicwa-oauth2-proxy
+  template:
+    metadata:
+      labels:
+        application: kicwa-oauth2-proxy
+    spec:
+      containers:
+      - args:
+        - --provider=oidc
+        - --azure-tenant="201452c3-8938-4d5f-89f2-0f1098708589"
+        - --pass-access-token=true
+        - --cookie-name=_proxycookie 
+        - --upstream=https://kicwa.westeurope.cloudapp.azure.com/oauth2/callback
+        - --cookie-csrf-per-request=true
+        - --cookie-csrf-expire=5m           # Avoid unauthorized csrf cookie errors.
+        - --email-domain=*                  # Email domains allowed to use the proxy
+        - --http-address=0.0.0.0:4180
+        - --oidc-issuer-url=https://login.microsoftonline.com/201452c3-8938-4d5f-89f2-0f1098708589/v2.0
+        - --user-id-claim=oid
+
+
+        name: kicwa-oauth2-proxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:v7.4.0
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: secrets-store01-inline
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+        env:
+        - name: OAUTH2_PROXY_CLIENT_ID # keep this name - it\'s required to be defined like this by OAuth2 Proxy
+          valueFrom:
+            secretKeyRef:
+              name: client-id
+              key: oauth2_proxy_client_id
+        - name: OAUTH2_PROXY_CLIENT_SECRET # keep this name - it\'s required to be defined like this by OAuth2 Proxy
+          valueFrom:
+            secretKeyRef:
+              name: client-secret
+              key: oauth2_proxy_client_secret
+        - name: OAUTH2_PROXY_COOKIE_SECRET # keep this name - it\'s required to be defined like this by OAuth2 Proxy
+          valueFrom:
+            secretKeyRef:
+              name: cookie-secret
+              key: oauth2_proxy_cookie_secret
+        ports:
+        - containerPort: 4180
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            
+      volumes:
+        - name: secrets-store01-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "azure-kvname"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    application: kicwa-oauth2-proxy
+  name: kicwa-oauth2-proxy-svc
+  namespace: kicwa
+spec:
+  ports:
+  - name: http
+    port: 4180
+    protocol: TCP
+    targetPort: 4180
+  selector:
+    application: kicwa-oauth2-proxy
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "2000m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "32k"
+  name: kicwa-oauth2-proxy-ingress
+  namespace: kicwa
+spec:
+  ingressClassName: nginx
+  rules:
+     - http:
+        paths:
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: kicwa-oauth2-proxy-svc
+                port:
+                  number: 4180      
