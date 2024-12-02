@@ -47,7 +47,7 @@ resource "azurerm_linux_web_app" "restapi" {
 
   site_config {
     application_stack {
-      docker_image_name   = "freddy/rest-api:1.6.8"
+      docker_image_name   = "freddy/rest-api:1.7.0"
       docker_registry_url = "https://${azurerm_container_registry.kic_assistant.login_server}"
     }
     container_registry_use_managed_identity       = true

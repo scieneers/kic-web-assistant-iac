@@ -7,8 +7,8 @@ module "key_vault_llms" {
 
     AZURE_OPENAI_GPT4_DEPLOYMENT : azurerm_cognitive_deployment.gpt-4o.name
     AZURE_OPENAI_GPT4_MODEL : azurerm_cognitive_deployment.gpt-4o.model[0].name
-    AZURE_OPENAI_EMBEDDER_DEPLOYMENT : azurerm_cognitive_deployment.ada-embedding.name
-    AZURE_OPENAI_EMBEDDER_MODEL : azurerm_cognitive_deployment.ada-embedding.model[0].name
+    AZURE_OPENAI_EMBEDDER_DEPLOYMENT : azurerm_cognitive_deployment.three-large-embedding.name
+    AZURE_OPENAI_EMBEDDER_MODEL : azurerm_cognitive_deployment.three-large-embedding.model[0].name
 
     AZURE_MISTRAL_URL : module.mistral_large.model_url
   }

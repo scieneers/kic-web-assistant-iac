@@ -35,8 +35,8 @@ resource "azurerm_container_app" "qdrant" {
     container {
       name   = "qdrant"
       image  = "kicwaacrdev.azurecr.io/qdrant/qdrant:v1.10.1"
-      cpu    = 0.25
-      memory = "0.5Gi"
+      cpu    = 0.5
+      memory = "1Gi"
 
       env {
         name  = "QDRANT__SERVICE__API_KEY"
