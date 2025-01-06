@@ -34,7 +34,7 @@ resource "azurerm_container_app" "qdrant" {
   template {
     container {
       name   = "qdrant"
-      image  = "kicwaacrdev.azurecr.io/qdrant/qdrant:v1.10.1"
+      image  = "kicwaacr${local.environment}.azurecr.io/qdrant/qdrant:v1.10.1"
       cpu    = 0.5
       memory = "1Gi"
 

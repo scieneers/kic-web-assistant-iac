@@ -19,7 +19,7 @@ resource "azurerm_linux_web_app" "streamlit_frontend" {
   }
   site_config {
     application_stack {
-      docker_image_name   = "freddy/kic-frontend:1.7.3"
+      docker_image_name   = var.frontend_image_name
       docker_registry_url = "https://${azurerm_container_registry.kic_assistant.login_server}"
     }
     container_registry_use_managed_identity       = true

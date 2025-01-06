@@ -1,0 +1,3 @@
+creation_rules:
+   - azure_keyvault: https://kicwa-keyvault-prod.vault.azure.net/keys/sops-key/4c5b2d52d04243539ef3cb1050998748
+     encrypted_regex: ".*"

@@ -47,7 +47,7 @@ resource "azurerm_cognitive_deployment" "gpt-4o" {
   }
 
   scale {
-    capacity = 150
+    capacity = 35
     type     = "Standard"
 
   }
@@ -65,7 +65,7 @@ resource "azurerm_cognitive_deployment" "gpt-4" {
   }
 
   scale {
-    capacity = 40
+    capacity = 10
     type     = "Standard"
 
   }
@@ -83,7 +83,7 @@ resource "azurerm_cognitive_deployment" "ada-embedding" {
   }
 
   scale {
-    capacity = 150
+    capacity = 75
     type     = "Standard"
 
   }
@@ -101,7 +101,7 @@ resource "azurerm_cognitive_deployment" "three-large-embedding" {
   }
 
   scale {
-    capacity = 150
+    capacity = 75
     type     = "Standard"
 
   }

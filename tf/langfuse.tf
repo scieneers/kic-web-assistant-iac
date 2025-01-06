@@ -54,6 +54,7 @@ resource "azurerm_linux_web_app" "langfuse" {
   # programmatically deployment of secrets not implemented yet #https://github.com/langfuse/langfuse/issues/517
   resource_group_name           = azurerm_resource_group.kic_web_assistant_rg.name
   name                          = "${local.resource_prefix}-langfuse-${local.environment}"
+  #name                          = "${local.resource_prefix}-langfuse-prod}"
   location                      = local.region
   service_plan_id               = azurerm_service_plan.streamlit_service_plan.id
   https_only                    = true
@@ -78,6 +79,7 @@ resource "azurerm_linux_web_app" "langfuse" {
     NEXTAUTH_SECRET   = "mysecret"
     SALT              = "mysalt"
     NEXTAUTH_URL      = "https://${local.resource_prefix}-langfuse-${local.environment}.azurewebsites.net"
+    #NEXTAUTH_URL      = "https://${local.resource_prefix}-langfuse-prod.azurewebsites.net"
     TELEMETRY_ENABLED = false
     # azure sso
     LANGFUSE_DEFAULT_PROJECT_ID   = "${local.resource_prefix}"
