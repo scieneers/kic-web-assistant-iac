@@ -95,6 +95,17 @@ resource "azurerm_key_vault_access_policy" "mistral_policy" {
 }
 
 
+resource "azurerm_key_vault_access_policy" "loader_policy" {
+  key_vault_id = azurerm_key_vault.kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_linux_function_app.function_app_loader.identity[0].principal_id
+
+  secret_permissions = [
+    "Get",
+    "List",
+  ]
+}
+
 resource "azurerm_key_vault_key" "sops-key" {
   name         = "sops-key"
   key_vault_id = azurerm_key_vault.kv.id

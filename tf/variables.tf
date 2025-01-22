@@ -22,3 +22,7 @@ variable "frontend_image_name"{
     default = "freddy/kic-frontend:1.7.3"
     type = string
 }
+variable "loader_image_name"{
+    default = "kic-loader:1.7.2"
+    type = string
+}
