@@ -10,7 +10,6 @@ resource "azurerm_linux_function_app" "function_app_loader" {
     "ENVIRONMENT" = "PRODUCTION"
     "KEY_VAULT_NAME" = azurerm_key_vault.kv.name
     "FUNCTIONS_WORKER_RUNTIME" = "python"
-    "WEBSITE_RUN_FROM_PACKAGE" = "1"
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
     "DOCKER_CUSTOM_IMAGE_NAME" = "${azurerm_container_registry.kic_assistant.name}.azurecr.io/${var.loader_image_name}:1.7.3"
   }

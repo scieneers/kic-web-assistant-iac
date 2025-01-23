@@ -55,6 +55,7 @@ resource "azurerm_container_app" "qdrant" {
       storage_type = "AzureFile"
     }
 
+    min_replicas = 1
 
   }
   identity {
