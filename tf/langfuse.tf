@@ -29,6 +29,7 @@ resource "azurerm_postgresql_flexible_server" "this" {
   storage_tier           = "P4"
   sku_name               = "B_Standard_B1ms"
   version                = 16
+  public_network_access_enabled = false
 
   authentication {
     password_auth_enabled = true
@@ -129,6 +130,7 @@ resource "azurerm_subnet" "default" {
   resource_group_name  = azurerm_resource_group.kic_web_assistant_rg.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/26"]
+  private_endpoint_network_policies = "Disabled"
 
   delegation {
     name = "delegation-webapp"
@@ -147,6 +149,7 @@ resource "azurerm_subnet" "postgres" {
   resource_group_name  = azurerm_resource_group.kic_web_assistant_rg.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.2.0/26"]
+  private_endpoint_network_policies = "Disabled"
 
   delegation {
     name = "delegation-postgres"

@@ -34,9 +34,9 @@ resource "azurerm_container_app" "qdrant" {
   template {
     container {
       name   = "qdrant"
-      image  = "kicwaacr${local.environment}.azurecr.io/qdrant/qdrant:v1.10.1"
-      cpu    = 0.5
-      memory = "1Gi"
+      image  = "kicwaacr${local.environment}.azurecr.io/qdrant/qdrant:v1.13.2"
+      cpu    = 2.0
+      memory = "4Gi"
 
       env {
         name  = "QDRANT__SERVICE__API_KEY"
@@ -47,6 +47,13 @@ resource "azurerm_container_app" "qdrant" {
         name = "qdrant-data"
         path = "/qdrant/storage"
       }
+
+       volume_mounts {
+        name    = "qdrant-data"
+        path    = "/qdrant/snapshots"
+        sub_path = "snapshots"
+      }
+
     }
 
     volume {
@@ -55,7 +62,8 @@ resource "azurerm_container_app" "qdrant" {
       storage_type = "AzureFile"
     }
 
-    min_replicas = 1
+    min_replicas = var.environment_short == "prod" ? 1 : 0
+    max_replicas = 1
 
   }
   identity {

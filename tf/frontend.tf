@@ -3,11 +3,12 @@ resource "azurerm_service_plan" "streamlit_service_plan" {
   resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
   location            = azurerm_resource_group.kic_web_assistant_rg.location
   os_type             = "Linux"
-  sku_name            = "P0v3"
+  sku_name            = var.environment_short == "prod" ? "P1v3" : "P0v3"
 }
 
 resource "azurerm_linux_web_app" "streamlit_frontend" {
   name                = "${local.frontend_domain_prefix}-${local.environment}"
+  count               = var.environment_short == "prod" ? 0 : 1
   resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
   location            = azurerm_resource_group.kic_web_assistant_rg.location
   service_plan_id     = azurerm_service_plan.streamlit_service_plan.id
