@@ -29,6 +29,7 @@ resource "azurerm_postgresql_flexible_server" "this" {
   storage_tier           = "P4"
   sku_name               = "B_Standard_B1ms"
   version                = 16
+  public_network_access_enabled = false
 
   authentication {
     password_auth_enabled = true
@@ -54,6 +55,7 @@ resource "azurerm_linux_web_app" "langfuse" {
   # programmatically deployment of secrets not implemented yet #https://github.com/langfuse/langfuse/issues/517
   resource_group_name           = azurerm_resource_group.kic_web_assistant_rg.name
   name                          = "${local.resource_prefix}-langfuse-${local.environment}"
+  #name                          = "${local.resource_prefix}-langfuse-prod}"
   location                      = local.region
   service_plan_id               = azurerm_service_plan.streamlit_service_plan.id
   https_only                    = true
@@ -78,6 +80,7 @@ resource "azurerm_linux_web_app" "langfuse" {
     NEXTAUTH_SECRET   = "mysecret"
     SALT              = "mysalt"
     NEXTAUTH_URL      = "https://${local.resource_prefix}-langfuse-${local.environment}.azurewebsites.net"
+    #NEXTAUTH_URL      = "https://${local.resource_prefix}-langfuse-prod.azurewebsites.net"
     TELEMETRY_ENABLED = false
     # azure sso
     LANGFUSE_DEFAULT_PROJECT_ID   = "${local.resource_prefix}"
@@ -127,6 +130,7 @@ resource "azurerm_subnet" "default" {
   resource_group_name  = azurerm_resource_group.kic_web_assistant_rg.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/26"]
+  private_endpoint_network_policies = "Disabled"
 
   delegation {
     name = "delegation-webapp"
@@ -145,6 +149,7 @@ resource "azurerm_subnet" "postgres" {
   resource_group_name  = azurerm_resource_group.kic_web_assistant_rg.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.2.0/26"]
+  private_endpoint_network_policies = "Disabled"
 
   delegation {
     name = "delegation-postgres"

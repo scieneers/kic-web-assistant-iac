@@ -10,7 +10,7 @@ module "key_vault_llms" {
     AZURE_OPENAI_EMBEDDER_DEPLOYMENT : azurerm_cognitive_deployment.three-large-embedding.name
     AZURE_OPENAI_EMBEDDER_MODEL : azurerm_cognitive_deployment.three-large-embedding.model[0].name
 
-    AZURE_MISTRAL_URL : module.mistral_large.model_url
+    AZURE_MISTRAL_URL : module.mistral_large_2411.model_url
   }
 }
 
@@ -46,10 +46,9 @@ resource "azurerm_cognitive_deployment" "gpt-4o" {
     format  = "OpenAI"
   }
 
-  scale {
-    capacity = 150
-    type     = "Standard"
-
+  sku {
+    capacity = 35
+    name     = "Standard"
   }
 }
 
@@ -64,27 +63,9 @@ resource "azurerm_cognitive_deployment" "gpt-4" {
     format  = "OpenAI"
   }
 
-  scale {
-    capacity = 40
-    type     = "Standard"
-
-  }
-}
-
-resource "azurerm_cognitive_deployment" "ada-embedding" {
-  name                 = "text-embedding-ada-002"
-  cognitive_account_id = azurerm_cognitive_account.openai.id
-  rai_policy_name      = "Microsoft.Default"
-
-  model {
-    name    = "text-embedding-ada-002"
-    version = "2"
-    format  = "OpenAI"
-  }
-
-  scale {
-    capacity = 150
-    type     = "Standard"
+  sku {
+    capacity = 10
+    name     = "Standard"
 
   }
 }
@@ -100,9 +81,9 @@ resource "azurerm_cognitive_deployment" "three-large-embedding" {
     format  = "OpenAI"
   }
 
-  scale {
+  sku {
     capacity = 150
-    type     = "Standard"
+    name     = "Standard"
 
   }
 }
@@ -168,18 +149,18 @@ module "llama_ai_project" {
 ##########################################
 # Model: Mistral large
 ##########################################
-module "mistral_large" {
+module "mistral_large_2411" {
   source            = "./modules/ai_model_serverless"
   environment_name  = local.environment
   location          = local.mistral_region
   resource_group_id = azurerm_resource_group.kic_web_assistant_rg.id
   project_id        = module.mistral_ai_project.id
   model = {
-    id                       = "azureml://registries/azureml-mistral/models/Mistral-large"
-    name                     = "Mistral-large"
+    id                       = "azureml://registries/azureml-mistral/models/Mistral-Large-2411"
+    name                     = "Mistral-large-2411"
     marketplace_publisher_id = "000-000"
-    marketplace_offer_id     = "mistral-ai-large-offer"
-    marketplace_plan_id      = "mistral-large-2402-plan"
+    marketplace_offer_id     = "mistral-large-2411"
+    marketplace_plan_id      = "mistral-large-2411-plan-prod"
   }
 }
 

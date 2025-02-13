@@ -91,6 +91,7 @@ resource "azurerm_key_vault_access_policy" "mistral_policy" {
   secret_permissions = [
     "Get",
     "List",
+    "Set",
   ]
 }
 
