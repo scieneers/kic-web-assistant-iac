@@ -33,21 +33,4 @@ resource "azurerm_linux_web_app" "streamlit_frontend" {
   }
 
   https_only = true
-
-  auth_settings_v2 {
-    auth_enabled           = true
-    default_provider       = "aad"
-    runtime_version        = "~1"
-    unauthenticated_action = "RedirectToLoginPage"
-    active_directory_v2 {
-      client_id                   = data.sops_file.secrets.data["AD_APP_ID"]
-      login_parameters            = {}
-      tenant_auth_endpoint        = "https://login.microsoftonline.com/${data.azurerm_client_config.current.tenant_id}"
-      www_authentication_disabled = false
-    }
-    login {
-      token_store_enabled = true
-    }
-  }
-
 }

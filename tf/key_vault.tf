@@ -83,19 +83,6 @@ resource "azurerm_key_vault_access_policy" "uai_access_policy" {
   ]
 }
 
-resource "azurerm_key_vault_access_policy" "mistral_policy" {
-  key_vault_id = azurerm_key_vault.kv.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = module.mistral_ai_project.managed_identity_id
-
-  secret_permissions = [
-    "Get",
-    "List",
-    "Set",
-  ]
-}
-
-
 resource "azurerm_key_vault_key" "sops-key" {
   name         = "sops-key"
   key_vault_id = azurerm_key_vault.kv.id

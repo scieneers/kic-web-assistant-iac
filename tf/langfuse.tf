@@ -29,14 +29,12 @@ resource "azurerm_postgresql_flexible_server" "this" {
   storage_tier           = "P4"
   sku_name               = "B_Standard_B1ms"
   version                = 16
-  public_network_access_enabled = false
+  public_network_access_enabled = true
 
   authentication {
     password_auth_enabled = true
   }
 
-  delegated_subnet_id = azurerm_subnet.postgres.id
-  private_dns_zone_id = azurerm_private_dns_zone.postgres.id
 }
 
 resource "azurerm_postgresql_flexible_server_database" "langfuse" {
@@ -60,7 +58,6 @@ resource "azurerm_linux_web_app" "langfuse" {
   service_plan_id               = azurerm_service_plan.streamlit_service_plan.id
   https_only                    = true
   client_affinity_enabled       = false
-  virtual_network_subnet_id     = azurerm_subnet.default.id
   public_network_access_enabled = true
 
   site_config {
@@ -88,7 +85,7 @@ resource "azurerm_linux_web_app" "langfuse" {
     AUTH_AZURE_AD_CLIENT_ID           = data.sops_file.secrets.data["AD_APP_ID"]
     AUTH_AZURE_AD_CLIENT_SECRET       = data.sops_file.secrets.data["AD_APP_SECRET_LANGFUSE"]
     AUTH_AZURE_AD_TENANT_ID           = data.azurerm_client_config.current.tenant_id
-    AUTH_DISABLE_USERNAME_PASSWORD    = true
+    AUTH_DISABLE_USERNAME_PASSWORD    = false
     AUTH_AZURE_ALLOW_ACCOUNT_LINKING  = true
     # the following two  values are currenlty ignored by langfuse,
     PORT = 80
@@ -116,61 +113,4 @@ module "key_vault_langfuse_host" {
   secrets = {
     LANGFUSE_HOST : "https://${azurerm_linux_web_app.langfuse.name}.azurewebsites.net"
   }
-}
-
-resource "azurerm_virtual_network" "this" {
-  name                = "${local.resource_prefix}-vnet-${local.environment}"
-  location            = azurerm_resource_group.kic_web_assistant_rg.location
-  resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
-  address_space       = ["10.0.0.0/16"]
-}
-
-resource "azurerm_subnet" "default" {
-  name                 = "${local.resource_prefix}-subnet-default"
-  resource_group_name  = azurerm_resource_group.kic_web_assistant_rg.name
-  virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = ["10.0.1.0/26"]
-  private_endpoint_network_policies = "Disabled"
-
-  delegation {
-    name = "delegation-webapp"
-
-    service_delegation {
-      name    = "Microsoft.Web/serverFarms"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
-    }
-  }
-
-  service_endpoints = ["Microsoft.Sql", "Microsoft.CognitiveServices", "Microsoft.Web", "Microsoft.Storage"]
-}
-
-resource "azurerm_subnet" "postgres" {
-  name                 = "${local.resource_prefix}-subnet-postgre"
-  resource_group_name  = azurerm_resource_group.kic_web_assistant_rg.name
-  virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = ["10.0.2.0/26"]
-  private_endpoint_network_policies = "Disabled"
-
-  delegation {
-    name = "delegation-postgres"
-
-    service_delegation {
-      name = "Microsoft.DBforPostgreSQL/flexibleServers"
-      actions = [
-        "Microsoft.Network/virtualNetworks/subnets/join/action",
-      ]
-    }
-  }
-}
-
-resource "azurerm_private_dns_zone" "postgres" {
-  name                = "private.postgres.database.azure.com"
-  resource_group_name = azurerm_resource_group.kic_web_assistant_rg.name
-}
-resource "azurerm_private_dns_zone_virtual_network_link" "this" {
-  name                  = "postgressVnetDNSZone.com"
-  private_dns_zone_name = azurerm_private_dns_zone.postgres.name
-  virtual_network_id    = azurerm_virtual_network.this.id
-  resource_group_name   = azurerm_resource_group.kic_web_assistant_rg.name
-  depends_on            = [azurerm_subnet.postgres]
 }

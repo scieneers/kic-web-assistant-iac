@@ -23,6 +23,7 @@ module "key_vault_qdrant_api_key" {
   key_vault_id = azurerm_key_vault.kv.id
   secrets = {
     QDRANT_API_KEY : random_password.qdrant_api_key.result
+    PROD_QDRANT_API_KEY: random_password.qdrant_api_key.result
   }
 }
 resource "azurerm_container_app" "qdrant" {
@@ -34,7 +35,7 @@ resource "azurerm_container_app" "qdrant" {
   template {
     container {
       name   = "qdrant"
-      image  = "kicwaacr${local.environment}.azurecr.io/qdrant/qdrant:v1.13.2"
+      image  = "kicwaacr${local.environment}.azurecr.io/qdrant/qdrant:v1.15.3"
       cpu    = 2.0
       memory = "4Gi"
 
@@ -62,7 +63,7 @@ resource "azurerm_container_app" "qdrant" {
       storage_type = "AzureFile"
     }
 
-    min_replicas = var.environment_short == "prod" ? 1 : 0
+    min_replicas = (var.environment_short == "prod" || var.environment_short == "lab") ? 1 : 0
     max_replicas = 1
 
   }
@@ -92,5 +93,6 @@ module "key_vault_qdrant_url" {
   key_vault_id = azurerm_key_vault.kv.id
   secrets = {
     QDRANT_URL : azurerm_container_app.qdrant.ingress[0].fqdn
+    PROD_QDRANT_URL: azurerm_container_app.qdrant.ingress[0].fqdn
   }
 }
