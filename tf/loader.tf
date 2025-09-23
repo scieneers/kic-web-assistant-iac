@@ -1,6 +1,6 @@
 resource "azurerm_linux_function_app" "function_app_loader" {
   name                = "${local.resource_prefix}-dataloader-${local.environment}"
-  count               = var.environment_short == "prod" ? 1 : 0
+  count               = contains(["prod", "lab"], var.environment_short) ? 1 : 0
   resource_group_name = local.resource_group
   location            = azurerm_resource_group.kic_web_assistant_rg.location
 
@@ -13,8 +13,12 @@ resource "azurerm_linux_function_app" "function_app_loader" {
     "KEY_VAULT_NAME" = azurerm_key_vault.kv.name
     "FUNCTIONS_WORKER_RUNTIME" = "python"
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
-    "DOCKER_CUSTOM_IMAGE_NAME" = "${azurerm_container_registry.kic_assistant.name}.azurecr.io/${var.loader_image_name}:1.0.0"
+    "DOCKER_CUSTOM_IMAGE_NAME" = "${azurerm_container_registry.kic_assistant.name}.azurecr.io/${var.loader_image_name}:1.0.3"
     "AZURE_CLIENT_ID" = azurerm_user_assigned_identity.uai.client_id
+    # There are no dev/prod instances of qdrant for the lab environment, so we are setting the dev ENV to the lab instance of qdrant
+    "DEV_QDRANT_URL" = azurerm_container_app.qdrant.ingress[0].fqdn
+    "DEV_QDRANT_API_KEY" = random_password.qdrant_api_key.result
+    "DEBUG_MODE" = "true"
   }
 
   identity {
@@ -26,7 +30,7 @@ resource "azurerm_linux_function_app" "function_app_loader" {
     application_stack {
         docker {
             image_name = var.loader_image_name
-            image_tag = "1.0.0"
+            image_tag = "1.0.3"
             registry_url  = "https://${azurerm_container_registry.kic_assistant.login_server}"
         }
     }
@@ -37,7 +41,7 @@ resource "azurerm_linux_function_app" "function_app_loader" {
 }
 
 resource "azurerm_role_assignment" "func_app_storage" {
-  count               = var.environment_short == "prod" ? 1 : 0
+  count               = contains(["prod", "lab"], var.environment_short) ? 1 : 0
   principal_id         =  azurerm_user_assigned_identity.uai.principal_id
   role_definition_name = "Storage Blob Data Contributor"
   scope                = azurerm_storage_account.kic_wa_sa.id
