@@ -1,0 +1,88 @@
+version: "3"
+
+vars:
+  TF_DIR: environments
+
+tasks:
+  tf-init:
+    desc: "Initialize Terraform for an environment: task tf-init ENV=dev"
+    dir: "{{.TF_DIR}}"
+    requires:
+      vars: [ENV]
+    cmds:
+      - terraform init -reconfigure -backend-config="backend.hcl"
+      - terraform workspace select -or-create {{.ENV}}
+
+  tf-plan:
+    desc: "Plan changes: task tf-plan ENV=dev"
+    dir: "{{.TF_DIR}}"
+    requires:
+      vars: [ENV]
+    cmds:
+      - task: tf-init
+        vars: { ENV: "{{.ENV}}" }
+      - terraform plan -var-file="{{.ENV}}/{{.ENV}}.tfvars" -out=tfplan
+
+  tf-apply:
+    desc: "Apply changes: task tf-apply ENV=dev"
+    dir: "{{.TF_DIR}}"
+    requires:
+      vars: [ENV]
+    cmds:
+      - task: tf-init
+        vars: { ENV: "{{.ENV}}" }
+      - terraform apply -var-file="{{.ENV}}/{{.ENV}}.tfvars"
+
+  tf-destroy:
+    desc: "Destroy environment: task tf-destroy ENV=dev"
+    dir: "{{.TF_DIR}}"
+    requires:
+      vars: [ENV]
+    prompt: "Are you sure you want to DESTROY {{.ENV}}?"
+    cmds:
+      - task: tf-init
+        vars: { ENV: "{{.ENV}}" }
+      - terraform destroy -var-file="{{.ENV}}/{{.ENV}}.tfvars"
+
+  tf-fmt:
+    desc: "Format all Terraform files"
+    cmds:
+      - terraform fmt -recursive .
+
+  tf-output:
+    desc: "Show outputs: task tf-output ENV=dev"
+    dir: "{{.TF_DIR}}"
+    requires:
+      vars: [ENV]
+    cmds:
+      - terraform output
+
+  tf-init-state:
+    desc: "Bootstrap state backend and generate backend config"
+    dir: initial_setup
+    cmds:
+      - terraform init
+      - terraform apply -var-file="initial_setup.tfvars"
+      - |
+        cat > ../environments/backend.hcl <<EOF
+        resource_group_name  = "$(terraform output -raw resource_group_name)"
+        storage_account_name = "$(terraform output -raw storage_account_name)"
+        tenant_id            = "$(terraform output -raw tenant_id)"
+        subscription_id      = "$(terraform output -raw subscription_id)"
+        EOF
+
+  sops-encrypt:
+    desc: "Encrypt secrets: task sops-encrypt ENV=dev"
+    dir: "{{.TF_DIR}}"
+    requires:
+      vars: [ENV]
+    cmds:
+      - sops -e --config {{.ENV}}/.sops.yaml {{.ENV}}/secrets.yaml > {{.ENV}}/secrets.enc.yaml
+
+  sops-decrypt:
+    desc: "Decrypt secrets: task sops-decrypt ENV=dev"
+    dir: "{{.TF_DIR}}"
+    requires:
+      vars: [ENV]
+    cmds:
+      - sops -d --config {{.ENV}}/.sops.yaml {{.ENV}}/secrets.enc.yaml > {{.ENV}}/secrets.yaml

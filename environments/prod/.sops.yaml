@@ -1,0 +1,3 @@
+creation_rules:
+   - azure_keyvault: https://kic-sops-keyvault.vault.azure.net/keys/sops-key-prod
+     encrypted_regex: ".*"
