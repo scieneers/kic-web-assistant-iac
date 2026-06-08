@@ -101,3 +101,7 @@ secrets.yaml
 
 # Generated backend config
 backend.hcl
+
+# Local env files dumped from Key Vault (contain plaintext secrets)
+.env
+.env.*

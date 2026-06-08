@@ -144,6 +144,8 @@ module "key_vault_llms" {
     AZURE_OPENAI_API_KEY             = module.openai.primary_access_key
     AZURE_OPENAI_GPT4_DEPLOYMENT     = module.openai.deployments["gpt-5.4"].name
     AZURE_OPENAI_GPT4_MODEL          = module.openai.deployments["gpt-5.4"].model_name
+    AZURE_FALLBACK_MODEL             = module.openai.deployments["gpt-5.4"].model_name
+    AZURE_FALLBACK_DEPLOYMENT        = module.openai.deployments["gpt-5.4"].name
     AZURE_OPENAI_EMBEDDER_DEPLOYMENT = module.openai.deployments["text-embedding-3-large"].name
     AZURE_OPENAI_EMBEDDER_MODEL      = module.openai.deployments["text-embedding-3-large"].model_name
   }
@@ -321,14 +323,15 @@ resource "azurerm_postgresql_flexible_server_database" "langfuse" {
 }
 
 resource "azurerm_linux_web_app" "langfuse" {
-  resource_group_name           = data.azurerm_resource_group.main.name
-  name                          = "${local.resource_prefix}-langfuse-${local.environment}"
-  location                      = local.region
-  service_plan_id               = azurerm_service_plan.main.id
-  https_only                    = true
-  client_affinity_enabled       = false
-  virtual_network_subnet_id     = azurerm_subnet.default.id
-  public_network_access_enabled = true
+  resource_group_name             = data.azurerm_resource_group.main.name
+  name                            = "${local.resource_prefix}-langfuse-${local.environment}"
+  location                        = local.region
+  service_plan_id                 = azurerm_service_plan.main.id
+  https_only                      = true
+  client_affinity_enabled         = false
+  virtual_network_subnet_id       = azurerm_subnet.default.id
+  public_network_access_enabled   = true
+  key_vault_reference_identity_id = azurerm_user_assigned_identity.main.id
 
   identity {
     type         = "UserAssigned"
@@ -432,11 +435,12 @@ module "key_vault_restapi" {
 }
 
 resource "azurerm_linux_web_app" "restapi" {
-  name                      = "kic-restapi-${local.environment}"
-  resource_group_name       = data.azurerm_resource_group.main.name
-  location                  = data.azurerm_resource_group.main.location
-  service_plan_id           = azurerm_service_plan.main.id
-  virtual_network_subnet_id = azurerm_subnet.default.id
+  name                            = "kic-restapi-${local.environment}"
+  resource_group_name             = data.azurerm_resource_group.main.name
+  location                        = data.azurerm_resource_group.main.location
+  service_plan_id                 = azurerm_service_plan.main.id
+  virtual_network_subnet_id       = azurerm_subnet.default.id
+  key_vault_reference_identity_id = azurerm_user_assigned_identity.main.id
 
   app_settings = {
     KEY_VAULT_NAME                      = azurerm_key_vault.main.name
@@ -524,25 +528,33 @@ resource "azurerm_linux_web_app" "frontend" {
 }
 
 #########################################
-# Loader Function App (prod only)
+# Loader Function App (dev + prod)
 #########################################
 
 resource "azurerm_linux_function_app" "loader" {
-  count                         = local.environment == "prod" ? 1 : 0
   name                          = "${local.resource_prefix}-dataloader-${local.environment}"
   resource_group_name           = data.azurerm_resource_group.main.name
   location                      = data.azurerm_resource_group.main.location
   storage_account_name          = module.storage.name
   service_plan_id               = azurerm_service_plan.main.id
   storage_uses_managed_identity = true
+  functions_extension_version   = "~4"
 
   app_settings = {
-    ENVIRONMENT                         = "PRODUCTION"
+    ENVIRONMENT                         = local.environment == "prod" ? "PRODUCTION" : "DEV"
     KEY_VAULT_NAME                      = azurerm_key_vault.main.name
+    AZURE_CLIENT_ID                     = azurerm_user_assigned_identity.main.client_id
     FUNCTIONS_WORKER_RUNTIME            = "python"
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
-    DOCKER_CUSTOM_IMAGE_NAME            = "index.docker.io/nginxdemos/hello:latest"
-    AZURE_CLIENT_ID                     = azurerm_user_assigned_identity.main.client_id
+    AzureWebJobsFeatureFlags            = "EnableWorkerIndexing"
+    # User-assigned identity that the Functions host uses for the Durable task-hub storage
+    # (storage_uses_managed_identity); without it the host looks for a system-assigned identity.
+    AzureWebJobsStorage__clientId = azurerm_user_assigned_identity.main.client_id
+    # Non-secret config only. All secrets (Qdrant/Moodle/Drupal/OpenAI/GWDG/Langfuse) are read
+    # at runtime from Key Vault by src/env.py via the managed identity (KEY_VAULT_NAME + AZURE_CLIENT_ID).
+    QDRANT_COLLECTION = "aichat"
+    # Audio transcription (Vosk) ships disabled: the loader image has no model/ffmpeg.
+    AUDIO_TRANSCRIPTION_ENABLED = "false"
   }
 
   identity {
@@ -551,12 +563,25 @@ resource "azurerm_linux_function_app" "loader" {
   }
 
   site_config {
+    always_on                                     = true
+    container_registry_use_managed_identity       = true
+    container_registry_managed_identity_client_id = azurerm_user_assigned_identity.main.client_id
     application_stack {
+      # Bootstrap placeholder. The real image (${local.resource_prefix}acr${local.environment}.azurecr.io/loader:<sha>)
+      # is promoted out-of-band via `task deploy-loader ENV=...`, mirroring restapi/frontend.
       docker {
         image_name   = "nginxdemos/hello"
         image_tag    = "latest"
         registry_url = "https://index.docker.io"
       }
     }
+  }
+
+  https_only = true
+
+  lifecycle {
+    ignore_changes = [
+      site_config[0].application_stack[0].docker,
+    ]
   }
 }

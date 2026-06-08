@@ -19,8 +19,10 @@ variable "frontend_image_name" {
 }
 
 variable "loader_image_name" {
+  # Matches the CI/Taskfile image name (kicacr<env>.azurecr.io/loader). The running tag is
+  # promoted out-of-band via `task deploy-loader` (see lifecycle.ignore_changes on the loader).
   type    = string
-  default = "kic-loader"
+  default = "loader:latest"
 }
 
 variable "qdrant_image_tag" {
