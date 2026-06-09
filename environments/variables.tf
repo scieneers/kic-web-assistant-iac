@@ -19,8 +19,6 @@ variable "frontend_image_name" {
 }
 
 variable "loader_image_name" {
-  # Matches the CI/Taskfile image name (kicacr<env>.azurecr.io/loader). The running tag is
-  # promoted out-of-band via `task deploy-loader` (see lifecycle.ignore_changes on the loader).
   type    = string
   default = "loader:latest"
 }
@@ -39,5 +37,5 @@ variable "allowed_ip_ranges" {
 
 variable "service_plan_sku" {
   type    = string
-  default = "P0v3"
+  default = "P1v3"
 }

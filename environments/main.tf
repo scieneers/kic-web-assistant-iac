@@ -212,8 +212,8 @@ resource "azurerm_container_app" "qdrant" {
     container {
       name   = "qdrant"
       image  = "${azurerm_container_registry.main.login_server}/qdrant/qdrant:${var.qdrant_image_tag}"
-      cpu    = 2.0
-      memory = "4Gi"
+      cpu    = 4.0
+      memory = "8Gi"
 
       env {
         name  = "QDRANT__SERVICE__API_KEY"
@@ -238,7 +238,7 @@ resource "azurerm_container_app" "qdrant" {
       storage_type = "AzureFile"
     }
 
-    min_replicas = local.environment == "prod" ? 1 : 0
+    min_replicas = 1
     max_replicas = 1
   }
 
@@ -443,15 +443,16 @@ resource "azurerm_linux_web_app" "restapi" {
   key_vault_reference_identity_id = azurerm_user_assigned_identity.main.id
 
   app_settings = {
-    KEY_VAULT_NAME                      = azurerm_key_vault.main.name
-    AZURE_CLIENT_ID                     = azurerm_user_assigned_identity.main.client_id
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE = false
-    LANGFUSE_PUBLIC_KEY                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-PUBLIC-KEY)"
-    LANGFUSE_SECRET_KEY                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-SECRET-KEY)"
-    LANGFUSE_HOST                       = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-HOST)"
-    QDRANT_API_KEY                      = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-API-KEY)"
-    QDRANT_URL                          = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-URL)"
-    ENVIRONMENT                         = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=ENVIRONMENT)"
+    KEY_VAULT_NAME                        = azurerm_key_vault.main.name
+    AZURE_CLIENT_ID                       = azurerm_user_assigned_identity.main.client_id
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = false
+    APPLICATIONINSIGHTS_CONNECTION_STRING = module.monitoring.app_insights_connection_string
+    LANGFUSE_PUBLIC_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-PUBLIC-KEY)"
+    LANGFUSE_SECRET_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-SECRET-KEY)"
+    LANGFUSE_HOST                         = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-HOST)"
+    QDRANT_API_KEY                        = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-API-KEY)"
+    QDRANT_URL                            = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-URL)"
+    ENVIRONMENT                           = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=ENVIRONMENT)"
   }
 
   site_config {
@@ -475,6 +476,8 @@ resource "azurerm_linux_web_app" "restapi" {
     ignore_changes = [
       site_config[0].application_stack[0].docker_image_name,
       site_config[0].application_stack[0].docker_registry_url,
+      tags,
+      sticky_settings,
     ]
   }
 }
@@ -539,22 +542,19 @@ resource "azurerm_linux_function_app" "loader" {
   service_plan_id               = azurerm_service_plan.main.id
   storage_uses_managed_identity = true
   functions_extension_version   = "~4"
+  virtual_network_subnet_id     = azurerm_subnet.default.id
 
   app_settings = {
-    ENVIRONMENT                         = local.environment == "prod" ? "PRODUCTION" : "DEV"
-    KEY_VAULT_NAME                      = azurerm_key_vault.main.name
-    AZURE_CLIENT_ID                     = azurerm_user_assigned_identity.main.client_id
-    FUNCTIONS_WORKER_RUNTIME            = "python"
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "false"
-    AzureWebJobsFeatureFlags            = "EnableWorkerIndexing"
-    # User-assigned identity that the Functions host uses for the Durable task-hub storage
-    # (storage_uses_managed_identity); without it the host looks for a system-assigned identity.
-    AzureWebJobsStorage__clientId = azurerm_user_assigned_identity.main.client_id
-    # Non-secret config only. All secrets (Qdrant/Moodle/Drupal/OpenAI/GWDG/Langfuse) are read
-    # at runtime from Key Vault by src/env.py via the managed identity (KEY_VAULT_NAME + AZURE_CLIENT_ID).
-    QDRANT_COLLECTION = "aichat"
-    # Audio transcription (Vosk) ships disabled: the loader image has no model/ffmpeg.
-    AUDIO_TRANSCRIPTION_ENABLED = "false"
+    ENVIRONMENT                           = local.environment == "prod" ? "PRODUCTION" : "DEV"
+    KEY_VAULT_NAME                        = azurerm_key_vault.main.name
+    AZURE_CLIENT_ID                       = azurerm_user_assigned_identity.main.client_id
+    FUNCTIONS_WORKER_RUNTIME              = "python"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE   = "false"
+    AzureWebJobsFeatureFlags              = "EnableWorkerIndexing"
+    APPLICATIONINSIGHTS_CONNECTION_STRING = module.monitoring.app_insights_connection_string
+    AzureWebJobsStorage__clientId         = azurerm_user_assigned_identity.main.client_id
+    QDRANT_COLLECTION                     = "aichat"
+    AUDIO_TRANSCRIPTION_ENABLED           = "false"
   }
 
   identity {
@@ -566,9 +566,8 @@ resource "azurerm_linux_function_app" "loader" {
     always_on                                     = true
     container_registry_use_managed_identity       = true
     container_registry_managed_identity_client_id = azurerm_user_assigned_identity.main.client_id
+    vnet_route_all_enabled                        = true
     application_stack {
-      # Bootstrap placeholder. The real image (${local.resource_prefix}acr${local.environment}.azurecr.io/loader:<sha>)
-      # is promoted out-of-band via `task deploy-loader ENV=...`, mirroring restapi/frontend.
       docker {
         image_name   = "nginxdemos/hello"
         image_tag    = "latest"
@@ -582,6 +581,8 @@ resource "azurerm_linux_function_app" "loader" {
   lifecycle {
     ignore_changes = [
       site_config[0].application_stack[0].docker,
+      tags,
+      sticky_settings,
     ]
   }
 }
