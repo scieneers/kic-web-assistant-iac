@@ -272,6 +272,39 @@ module "key_vault_qdrant_url" {
 }
 
 #########################################
+# Azure AI Search
+#########################################
+
+module "ai_search" {
+  source              = "../modules/ai_search"
+  name                = "${local.resource_prefix}-search-${local.environment}"
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = data.azurerm_resource_group.main.location
+
+  sku                 = var.search_sku
+  semantic_search_sku = var.search_semantic_sku
+
+  # RBAC-only: no API keys. Apps authenticate via managed identity, developers via `az login`.
+  local_authentication_enabled = false
+
+  # Apps reach the service privately through the endpoint in the VNet. Developers reach it over
+  # the public endpoint, restricted to allowed_ip_ranges (a valid Entra token is still required).
+  public_network_access_enabled = true
+  allowed_ips                   = var.allowed_ip_ranges
+
+  vnet_id                    = azurerm_virtual_network.main.id
+  private_endpoint_subnet_id = azurerm_subnet.private_endpoints.id
+}
+
+module "key_vault_ai_search" {
+  source       = "../modules/key_vault_secrets"
+  key_vault_id = azurerm_key_vault.main.id
+  secrets = {
+    AZURE_SEARCH_ENDPOINT = module.ai_search.endpoint
+  }
+}
+
+#########################################
 # PostgreSQL + Langfuse
 #########################################
 
@@ -452,6 +485,8 @@ resource "azurerm_linux_web_app" "restapi" {
     LANGFUSE_HOST                         = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-HOST)"
     QDRANT_API_KEY                        = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-API-KEY)"
     QDRANT_URL                            = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-URL)"
+    AZURE_SEARCH_ENDPOINT                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=AZURE-SEARCH-ENDPOINT)"
+    AZURE_SEARCH_INDEX                    = "aichat"
     ENVIRONMENT                           = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=ENVIRONMENT)"
   }
 
@@ -554,6 +589,8 @@ resource "azurerm_linux_function_app" "loader" {
     APPLICATIONINSIGHTS_CONNECTION_STRING = module.monitoring.app_insights_connection_string
     AzureWebJobsStorage__clientId         = azurerm_user_assigned_identity.main.client_id
     QDRANT_COLLECTION                     = "aichat"
+    AZURE_SEARCH_ENDPOINT                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=AZURE-SEARCH-ENDPOINT)"
+    AZURE_SEARCH_INDEX                    = "aichat"
     AUDIO_TRANSCRIPTION_ENABLED           = "false"
   }
 

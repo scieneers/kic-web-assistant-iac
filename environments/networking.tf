@@ -65,6 +65,14 @@ resource "azurerm_subnet" "container_apps" {
   service_endpoints = ["Microsoft.Storage"]
 }
 
+resource "azurerm_subnet" "private_endpoints" {
+  name                              = "${local.resource_prefix}-subnet-pe"
+  resource_group_name               = data.azurerm_resource_group.main.name
+  virtual_network_name              = azurerm_virtual_network.main.name
+  address_prefixes                  = ["10.0.3.0/26"]
+  private_endpoint_network_policies = "Disabled"
+}
+
 resource "azurerm_private_dns_zone" "postgres" {
   name                = "private.postgres.database.azure.com"
   resource_group_name = data.azurerm_resource_group.main.name

@@ -39,3 +39,15 @@ variable "service_plan_sku" {
   type    = string
   default = "P1v3"
 }
+
+variable "search_sku" {
+  type        = string
+  default     = "basic"
+  description = "Azure AI Search SKU. 'basic' or higher is required for the private endpoint ('free' does not support Private Link)."
+}
+
+variable "search_semantic_sku" {
+  type        = string
+  default     = null
+  description = "Semantic ranking tier for Azure AI Search ('free' or 'standard'). null disables semantic search."
+}

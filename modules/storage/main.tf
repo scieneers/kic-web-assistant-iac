@@ -16,7 +16,7 @@ resource "azurerm_storage_account" "this" {
 }
 
 resource "azurerm_storage_share" "qdrant" {
-  name                 = "qdrantshare"
+  name               = "qdrantshare"
   storage_account_id = azurerm_storage_account.this.id
-  quota                = 102400
+  quota              = 102400
 }
