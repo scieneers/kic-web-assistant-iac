@@ -23,12 +23,6 @@ variable "loader_image_name" {
   default = "loader:latest"
 }
 
-variable "qdrant_image_tag" {
-  type        = string
-  default     = "v1.18.2"
-  description = "Qdrant image tag to import into ACR for reproducible deployments"
-}
-
 variable "allowed_ip_ranges" {
   type        = list(string)
   default     = []

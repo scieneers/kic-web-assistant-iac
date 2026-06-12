@@ -14,9 +14,3 @@ resource "azurerm_storage_account" "this" {
     virtual_network_subnet_ids = var.vnet_subnet_ids
   }
 }
-
-resource "azurerm_storage_share" "qdrant" {
-  name               = "qdrantshare"
-  storage_account_id = azurerm_storage_account.this.id
-  quota              = 102400
-}

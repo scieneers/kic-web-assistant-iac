@@ -16,7 +16,7 @@ module "storage" {
   resource_group_name = data.azurerm_resource_group.main.name
   location            = data.azurerm_resource_group.main.location
   allowed_ip_ranges   = var.allowed_ip_ranges
-  vnet_subnet_ids     = [azurerm_subnet.default.id, azurerm_subnet.container_apps.id]
+  vnet_subnet_ids     = [azurerm_subnet.default.id]
 }
 
 #########################################
@@ -161,114 +161,6 @@ module "monitoring" {
   app_insights_name   = "ai-${local.environment}"
   resource_group_name = data.azurerm_resource_group.main.name
   location            = data.azurerm_resource_group.main.location
-}
-
-#########################################
-# Qdrant
-#########################################
-
-resource "random_password" "qdrant_api_key" {
-  length  = 64
-  special = false
-}
-
-module "key_vault_qdrant_api_key" {
-  source       = "../modules/key_vault_secrets"
-  key_vault_id = azurerm_key_vault.main.id
-  secrets = {
-    QDRANT_API_KEY = random_password.qdrant_api_key.result
-  }
-}
-
-resource "azurerm_container_app_environment" "qdrant" {
-  name                     = "qdrant-environment"
-  location                 = data.azurerm_resource_group.main.location
-  resource_group_name      = data.azurerm_resource_group.main.name
-  infrastructure_subnet_id = azurerm_subnet.container_apps.id
-
-  workload_profile {
-    name                  = "Consumption"
-    workload_profile_type = "Consumption"
-  }
-}
-
-resource "azurerm_container_app_environment_storage" "qdrant" {
-  name                         = "qdrant-storage"
-  container_app_environment_id = azurerm_container_app_environment.qdrant.id
-  account_name                 = module.storage.name
-  share_name                   = module.storage.share_name
-  access_key                   = module.storage.primary_access_key
-  access_mode                  = "ReadWrite"
-}
-
-resource "azurerm_container_app" "qdrant" {
-  name                         = "qdrant-app"
-  container_app_environment_id = azurerm_container_app_environment.qdrant.id
-  resource_group_name          = data.azurerm_resource_group.main.name
-  revision_mode                = "Single"
-  workload_profile_name        = "Consumption"
-
-  template {
-    container {
-      name   = "qdrant"
-      image  = "${azurerm_container_registry.main.login_server}/qdrant/qdrant:${var.qdrant_image_tag}"
-      cpu    = 4.0
-      memory = "8Gi"
-
-      env {
-        name  = "QDRANT__SERVICE__API_KEY"
-        value = module.key_vault_qdrant_api_key.secrets["QDRANT_API_KEY"]
-      }
-
-      volume_mounts {
-        name = "qdrant-data"
-        path = "/qdrant/storage"
-      }
-
-      volume_mounts {
-        name     = "qdrant-data"
-        path     = "/qdrant/snapshots"
-        sub_path = "snapshots"
-      }
-    }
-
-    volume {
-      name         = "qdrant-data"
-      storage_name = azurerm_container_app_environment_storage.qdrant.name
-      storage_type = "AzureFile"
-    }
-
-    min_replicas = 1
-    max_replicas = 1
-  }
-
-  identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.main.id]
-  }
-
-  registry {
-    server   = azurerm_container_registry.main.login_server
-    identity = azurerm_user_assigned_identity.main.id
-  }
-
-  ingress {
-    external_enabled = true
-    target_port      = 6333
-    transport        = "auto"
-    traffic_weight {
-      percentage      = 100
-      latest_revision = true
-    }
-  }
-}
-
-module "key_vault_qdrant_url" {
-  source       = "../modules/key_vault_secrets"
-  key_vault_id = azurerm_key_vault.main.id
-  secrets = {
-    QDRANT_URL = "https://${azurerm_container_app.qdrant.ingress[0].fqdn}"
-  }
 }
 
 #########################################
@@ -483,8 +375,6 @@ resource "azurerm_linux_web_app" "restapi" {
     LANGFUSE_PUBLIC_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-PUBLIC-KEY)"
     LANGFUSE_SECRET_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-SECRET-KEY)"
     LANGFUSE_HOST                         = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-HOST)"
-    QDRANT_API_KEY                        = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-API-KEY)"
-    QDRANT_URL                            = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=QDRANT-URL)"
     AZURE_SEARCH_ENDPOINT                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=AZURE-SEARCH-ENDPOINT)"
     AZURE_SEARCH_INDEX                    = "aichat"
     ENVIRONMENT                           = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=ENVIRONMENT)"
@@ -570,14 +460,15 @@ resource "azurerm_linux_web_app" "frontend" {
 #########################################
 
 resource "azurerm_linux_function_app" "loader" {
-  name                          = "${local.resource_prefix}-dataloader-${local.environment}"
-  resource_group_name           = data.azurerm_resource_group.main.name
-  location                      = data.azurerm_resource_group.main.location
-  storage_account_name          = module.storage.name
-  service_plan_id               = azurerm_service_plan.main.id
-  storage_uses_managed_identity = true
-  functions_extension_version   = "~4"
-  virtual_network_subnet_id     = azurerm_subnet.default.id
+  name                            = "${local.resource_prefix}-dataloader-${local.environment}"
+  resource_group_name             = data.azurerm_resource_group.main.name
+  location                        = data.azurerm_resource_group.main.location
+  storage_account_name            = module.storage.name
+  service_plan_id                 = azurerm_service_plan.main.id
+  storage_uses_managed_identity   = true
+  functions_extension_version     = "~4"
+  virtual_network_subnet_id       = azurerm_subnet.default.id
+  key_vault_reference_identity_id = azurerm_user_assigned_identity.main.id
 
   app_settings = {
     ENVIRONMENT                           = local.environment == "prod" ? "PRODUCTION" : "DEV"
@@ -588,7 +479,6 @@ resource "azurerm_linux_function_app" "loader" {
     AzureWebJobsFeatureFlags              = "EnableWorkerIndexing"
     APPLICATIONINSIGHTS_CONNECTION_STRING = module.monitoring.app_insights_connection_string
     AzureWebJobsStorage__clientId         = azurerm_user_assigned_identity.main.client_id
-    QDRANT_COLLECTION                     = "aichat"
     AZURE_SEARCH_ENDPOINT                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=AZURE-SEARCH-ENDPOINT)"
     AZURE_SEARCH_INDEX                    = "aichat"
     AUDIO_TRANSCRIPTION_ENABLED           = "false"

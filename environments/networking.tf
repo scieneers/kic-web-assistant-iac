@@ -47,24 +47,6 @@ resource "azurerm_subnet" "postgres" {
   }
 }
 
-resource "azurerm_subnet" "container_apps" {
-  name                 = "${local.resource_prefix}-subnet-containerapp"
-  resource_group_name  = data.azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.4.0/23"]
-
-  delegation {
-    name = "delegation-containerapp"
-
-    service_delegation {
-      name    = "Microsoft.App/environments"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
-    }
-  }
-
-  service_endpoints = ["Microsoft.Storage"]
-}
-
 resource "azurerm_subnet" "private_endpoints" {
   name                              = "${local.resource_prefix}-subnet-pe"
   resource_group_name               = data.azurerm_resource_group.main.name
