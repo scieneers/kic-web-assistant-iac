@@ -127,6 +127,13 @@ module "openai" {
       capacity      = 670
     },
     {
+      name          = "gpt-5-mini"
+      model_name    = "gpt-5-mini"
+      model_version = "2025-08-07"
+      sku_name      = "DataZoneStandard"
+      capacity      = 500
+    },
+    {
       name          = "text-embedding-3-large"
       model_name    = "text-embedding-3-large"
       sku_name      = "DataZoneStandard"
@@ -146,6 +153,8 @@ module "key_vault_llms" {
     AZURE_OPENAI_GPT4_MODEL          = module.openai.deployments["gpt-5.4"].model_name
     AZURE_FALLBACK_MODEL             = module.openai.deployments["gpt-5.4"].model_name
     AZURE_FALLBACK_DEPLOYMENT        = module.openai.deployments["gpt-5.4"].name
+    AZURE_MINI_MODEL                 = module.openai.deployments["gpt-5-mini"].model_name
+    AZURE_MINI_DEPLOYMENT            = module.openai.deployments["gpt-5-mini"].name
     AZURE_OPENAI_EMBEDDER_DEPLOYMENT = module.openai.deployments["text-embedding-3-large"].name
     AZURE_OPENAI_EMBEDDER_MODEL      = module.openai.deployments["text-embedding-3-large"].model_name
   }
