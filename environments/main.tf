@@ -385,8 +385,10 @@ resource "azurerm_linux_web_app" "restapi" {
     LANGFUSE_SECRET_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-SECRET-KEY)"
     LANGFUSE_HOST                         = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=LANGFUSE-HOST)"
     AZURE_SEARCH_ENDPOINT                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=AZURE-SEARCH-ENDPOINT)"
-    AZURE_SEARCH_INDEX                    = "aichat"
+    AZURE_SEARCH_INDEX                    = "kic-content"
     ENVIRONMENT                           = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=ENVIRONMENT)"
+    DEBUG_MODE                            = tostring(var.debug_mode)
+    ENABLE_SOCRATIC                       = tostring(var.enable_socratic)
   }
 
   site_config {
@@ -421,19 +423,37 @@ resource "azurerm_linux_web_app" "restapi" {
 #########################################
 
 resource "azurerm_linux_web_app" "frontend" {
-  count               = local.environment == "prod" ? 0 : 1
-  name                = "kic-frontend-${local.environment}"
-  resource_group_name = data.azurerm_resource_group.main.name
-  location            = data.azurerm_resource_group.main.location
-  service_plan_id     = azurerm_service_plan.main.id
+  count                     = local.environment == "prod" ? 0 : 1
+  name                      = "kic-frontend-${local.environment}"
+  resource_group_name       = data.azurerm_resource_group.main.name
+  location                  = data.azurerm_resource_group.main.location
+  service_plan_id           = azurerm_service_plan.main.id
+  virtual_network_subnet_id = azurerm_subnet.default.id
 
   app_settings = {
     KEY_VAULT_NAME                      = azurerm_key_vault.main.name
     AZURE_CLIENT_ID                     = azurerm_user_assigned_identity.main.client_id
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = false
+    FRONTEND_PASSWORD                   = var.frontend_password
+    REST_API_URL                        = "https://${azurerm_linux_web_app.restapi.default_hostname}/"
   }
 
   site_config {
+    vnet_route_all_enabled                        = true
+    container_registry_use_managed_identity       = true
+    container_registry_managed_identity_client_id = azurerm_user_assigned_identity.main.client_id
+    ip_restriction_default_action                 = "Deny"
+
+    dynamic "ip_restriction" {
+      for_each = var.allowed_ip_ranges
+      content {
+        ip_address = "${ip_restriction.value}/32"
+        action     = "Allow"
+        priority   = 300
+        name       = "allowed-ip-${ip_restriction.key}"
+      }
+    }
+
     application_stack {
       docker_image_name   = "nginxdemos/hello:latest"
       docker_registry_url = "https://index.docker.io"
@@ -446,6 +466,15 @@ resource "azurerm_linux_web_app" "frontend" {
   }
 
   https_only = true
+
+  lifecycle {
+    ignore_changes = [
+      site_config[0].application_stack[0].docker_image_name,
+      site_config[0].application_stack[0].docker_registry_url,
+      tags,
+      sticky_settings,
+    ]
+  }
 
   auth_settings_v2 {
     auth_enabled           = true
@@ -489,7 +518,7 @@ resource "azurerm_linux_function_app" "loader" {
     APPLICATIONINSIGHTS_CONNECTION_STRING = module.monitoring.app_insights_connection_string
     AzureWebJobsStorage__clientId         = azurerm_user_assigned_identity.main.client_id
     AZURE_SEARCH_ENDPOINT                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=AZURE-SEARCH-ENDPOINT)"
-    AZURE_SEARCH_INDEX                    = "aichat"
+    AZURE_SEARCH_INDEX                    = "kic-content"
     AUDIO_TRANSCRIPTION_ENABLED           = "false"
   }
 

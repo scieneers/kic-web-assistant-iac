@@ -45,3 +45,21 @@ variable "search_semantic_sku" {
   default     = null
   description = "Semantic ranking tier for Azure AI Search ('free' or 'standard'). null disables semantic search."
 }
+
+variable "frontend_password" {
+  type        = string
+  sensitive   = true
+  description = "Basic-auth password for the frontend app"
+}
+
+variable "debug_mode" {
+  type        = bool
+  default     = false
+  description = "Enables DEBUG_MODE on the REST API"
+}
+
+variable "enable_socratic" {
+  type        = bool
+  default     = true
+  description = "Enables ENABLE_SOCRATIC on the REST API"
+}
