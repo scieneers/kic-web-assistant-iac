@@ -49,6 +49,34 @@ tasks:
     cmds:
       - terraform fmt -recursive .
 
+  convert-to-sitecontainers:
+    desc: "One-time switch of restapi to sitecontainers mode (required before the sidecar works): task convert-to-sitecontainers ENV=dev"
+    requires:
+      vars: [ENV]
+    cmds:
+      - ./scripts/convert-to-sitecontainers.sh {{.ENV}}
+
+  deploy-sidecar:
+    desc: "Deploy/update the Redis sidecar on the restapi App Service: task deploy-sidecar ENV=dev"
+    requires:
+      vars: [ENV]
+    cmds:
+      - ./scripts/deploy-sidecar.sh {{.ENV}}
+
+  refresh-langfuse-image:
+    desc: "Re-import the latest langfuse:2 image into the ACR: task refresh-langfuse-image ENV=dev"
+    requires:
+      vars: [ENV]
+    cmds:
+      - ./scripts/refresh-langfuse-image.sh {{.ENV}}
+
+  refresh-redis-image:
+    desc: "Mirror the redis-stack-server sidecar image into the ACR: task refresh-redis-image ENV=dev"
+    requires:
+      vars: [ENV]
+    cmds:
+      - ./scripts/refresh-redis-image.sh {{.ENV}}
+
   tf-output:
     desc: "Show outputs: task tf-output ENV=dev"
     dir: "{{.TF_DIR}}"

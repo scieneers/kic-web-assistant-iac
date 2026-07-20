@@ -335,6 +335,11 @@ resource "azurerm_service_plan" "main" {
   location            = data.azurerm_resource_group.main.location
   os_type             = "Linux"
   sku_name            = var.service_plan_sku
+
+  # Do not scale this plan beyond a single instance: restapi runs a Redis
+  # sidecar (deployed out-of-band, see scripts/deploy-sidecar.sh) that is
+  # per-instance and non-persistent. Scaling out would give each instance
+  # its own isolated, inconsistent Redis state.
 }
 
 #########################################
@@ -389,6 +394,15 @@ resource "azurerm_linux_web_app" "restapi" {
     ENVIRONMENT                           = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.main.name};SecretName=ENVIRONMENT)"
     DEBUG_MODE                            = tostring(var.debug_mode)
     ENABLE_SOCRATIC                       = tostring(var.enable_socratic)
+    # Redis sidecar deployed out-of-band via scripts/deploy-sidecar.sh
+    # (Terraform's azurerm provider does not support App Service sidecar
+    # containers yet: hashicorp/terraform-provider-azurerm#25167). Sidecars
+    # share the app's network namespace, so it's reachable via loopback.
+    # Use the literal IP, not "localhost": with vnet_route_all_enabled,
+    # hostname resolution inside the container is not guaranteed to resolve
+    # "localhost" the same way (missing /etc/hosts entry, IPv6 ::1
+    # preference, etc.), and this loopback call should never touch the VNet.
+    REDIS_URL = "redis://127.0.0.1:6379"
   }
 
   site_config {
@@ -409,9 +423,16 @@ resource "azurerm_linux_web_app" "restapi" {
   https_only = true
 
   lifecycle {
+    # This app was converted to App Service's sitecontainers/sidecar model
+    # (`az webapp sitecontainers convert --mode sitecontainers`) so the Redis
+    # sidecar (see scripts/deploy-sidecar.sh) actually gets scheduled — the
+    # azurerm provider still only knows the classic single-container model
+    # and would flip `linuxFxVersion` back from "SITECONTAINERS" to
+    # "DOCKER|..." on the next apply if it were allowed to manage
+    # site_config at all, breaking the sidecar again. Ignore the whole
+    # block, not just the docker_image_name/docker_registry_url fields.
     ignore_changes = [
-      site_config[0].application_stack[0].docker_image_name,
-      site_config[0].application_stack[0].docker_registry_url,
+      site_config,
       tags,
       sticky_settings,
     ]
